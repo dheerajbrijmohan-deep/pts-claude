@@ -1,0 +1,827 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#C1602A">
+<title>PFMS — Driver</title>
+<link rel="manifest" href="/driver/manifest.json">
+<link rel="icon" href="/driver/icon.svg">
+<link rel="apple-touch-icon" href="/driver/icon.svg">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --cream:#F3E8D6; --card:#EADFC8; --card-2:#E2D5BA; --ink:#2A2118; --ink-soft:#71624E;
+  --line:#DBCBA9; --accent:#C1602A; --accent-ink:#FBF3E9; --accent-soft:#EAC9A9;
+  --good:#4F6E3C; --good-soft:#DCE5C8; --warn:#9C7014; --warn-soft:#EFDDAC;
+  --bad:#93362F; --bad-soft:#EDD0C8; --mono:#5A4C38; --shadow:0 10px 26px -16px rgba(42,33,24,0.4);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --cream:#1D1712; --card:#271F17; --card-2:#2E251B; --ink:#EFE4D0; --ink-soft:#B3A387;
+    --line:#453729; --accent:#E27C42; --accent-ink:#241207; --accent-soft:#4A3320;
+    --good:#8CAE6C; --good-soft:#2E3A22; --warn:#D6AA4E; --warn-soft:#3D3115;
+    --bad:#E08579; --bad-soft:#3F2420; --mono:#C2B393; --shadow:0 10px 26px -16px rgba(0,0,0,.6);
+  }
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{margin:0; background:var(--cream); color:var(--ink); font-family:"Plus Jakarta Sans",system-ui,sans-serif; line-height:1.45;}
+h1,h2,h3{font-family:"Playfair Display",Georgia,serif; margin:0;}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;}
+input,select,textarea{font-family:inherit; font-size:15px;}
+button{font-family:inherit;}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+.app{max-width:480px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; position:relative;}
+
+/* login */
+.login-screen{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;}
+.login-card{width:100%; max-width:340px; background:var(--card); border:1px solid var(--line); border-radius:18px; padding:30px 26px; box-shadow:var(--shadow);}
+.mark{display:inline-flex; align-items:center; justify-content:center; padding:9px 11px; border-radius:11px; background:var(--accent); color:var(--accent-ink); font-family:"Playfair Display",serif; font-weight:700; font-size:15px; letter-spacing:.03em;}
+.login-card h1{font-size:18px; font-style:italic; margin:14px 0 2px; text-wrap:balance;}
+.login-card .sub{font-size:13px; color:var(--ink-soft); margin-bottom:20px;}
+.field{margin-bottom:14px;}
+.field label{display:block; font-size:11.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin-bottom:5px; font-weight:600;}
+.field input,.field select,.field textarea{width:100%; padding:11px 12px; border-radius:9px; border:1px solid var(--line); background:var(--cream); color:var(--ink);}
+.field textarea{resize:vertical; min-height:64px;}
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:6px; border:none; border-radius:10px; padding:12px 18px; font-size:14.5px; font-weight:700; cursor:pointer; background:var(--card-2); color:var(--ink);}
+.btn.primary{background:var(--accent); color:var(--accent-ink);}
+.btn.good{background:var(--good); color:#fff;}
+.btn.ghost{background:transparent; border:1px solid var(--line); color:var(--ink);}
+.btn.block{width:100%;}
+.btn:disabled{opacity:.5;}
+.error-text{color:var(--bad); font-size:12.5px; margin-top:10px; min-height:1em;}
+
+/* topbar */
+.topbar{position:sticky; top:0; z-index:10; background:var(--cream); border-bottom:1px solid var(--line); padding:14px 18px; display:flex; align-items:center; justify-content:space-between;}
+.topbar .who{display:flex; align-items:center; gap:10px;}
+.topbar h1{font-size:16px; font-style:italic;}
+.topbar .who span{display:block; font-size:10.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em;}
+.logout-btn{background:none; border:none; color:var(--ink-soft); font-size:12.5px; cursor:pointer;}
+
+/* announcement banner */
+.announce-banner{background:var(--accent); color:var(--accent-ink); padding:12px 18px; font-size:13.5px; display:flex; justify-content:space-between; align-items:center; gap:10px;}
+.announce-banner button{background:rgba(255,255,255,.2); border:none; color:inherit; border-radius:6px; padding:4px 9px; font-size:11.5px; cursor:pointer; flex:0 0 auto;}
+
+main{flex:1; padding:18px 18px 90px;}
+.page-title{font-size:21px; margin-bottom:4px;}
+.page-sub{font-size:12.5px; color:var(--ink-soft); margin-bottom:16px;}
+
+.card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; box-shadow:var(--shadow);}
+.card h3{font-size:14.5px; margin-bottom:10px;}
+.stat-row{display:flex; gap:10px;}
+.stat{flex:1; background:var(--card-2); border:1px solid var(--line); border-radius:10px; padding:10px; text-align:center;}
+.stat .v{font-family:"IBM Plex Mono",monospace; font-size:17px;}
+.stat .l{font-size:9.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.03em; margin-top:2px;}
+
+.quick-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:6px;}
+.quick-btn{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 10px; text-align:center; cursor:pointer; font-size:13px; font-weight:700;}
+.quick-btn .emoji{font-size:22px; display:block; margin-bottom:6px;}
+
+.pill{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; text-transform:capitalize;}
+.pill.good{background:var(--good-soft); color:var(--good);}
+.pill.warn{background:var(--warn-soft); color:var(--warn);}
+.pill.bad{background:var(--bad-soft); color:var(--bad);}
+.pill::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor;}
+
+.list-row{display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); gap:10px;}
+.list-row:last-child{border-bottom:none;}
+.list-row .meta b{display:block; font-size:13.5px;}
+.list-row .meta span{font-size:11.5px; color:var(--ink-soft);}
+.empty{padding:20px 0; text-align:center; color:var(--ink-soft); font-size:13px;}
+
+.fuel-row{display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); font-size:13px;}
+.fuel-row:last-child{border-bottom:none;}
+.fuel-row .badge{font-family:"IBM Plex Mono",monospace; font-size:10.5px; background:var(--card-2); border:1px solid var(--line); border-radius:5px; padding:2px 6px; text-transform:uppercase;}
+
+.upload-box{border:1.5px dashed var(--line); border-radius:12px; padding:14px; margin-top:10px; background:var(--card-2);}
+
+.tabbar{position:sticky; bottom:0; z-index:10; background:var(--card); border-top:1px solid var(--line); display:flex; padding:6px 4px calc(6px + env(safe-area-inset-bottom));}
+.tab-item{flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; background:none; border:none; padding:6px 2px; color:var(--ink-soft); cursor:pointer; border-radius:10px;}
+.tab-item .emoji{font-size:18px;}
+.tab-item .lbl{font-size:10px; font-weight:700;}
+.tab-item.active{color:var(--accent);}
+
+.toast-wrap{position:fixed; bottom:70px; left:50%; transform:translateX(-50%); display:flex; flex-direction:column; gap:8px; z-index:100; width:calc(100% - 36px); max-width:440px;}
+.toast{background:#2A2019; color:#EFE3D0; padding:11px 16px; border-radius:10px; font-size:13px; box-shadow:var(--shadow); text-align:center;}
+.toast.err{background:var(--bad);}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const state = {
+  loading:true, loggedIn:false, loginError:'',
+  driver:null, view:'home',
+  todayLog:null, logs:[], documents:[], leaveRequests:[], announcements:[], expenseClaims:[], incidents:[],
+  toasts:[], expenseForm:null, incidentForm:null, lowBattery:false,
+};
+
+function el(tag, attrs, children){
+  const node = document.createElement(tag);
+  attrs = attrs || {};
+  for(const k in attrs){
+    if(k === 'class') node.className = attrs[k];
+    else if(k === 'onclick' && typeof attrs[k] === 'function'){
+      // Guards every click handler against double-submits: a second click
+      // while the first is still in flight (slow network) is ignored instead
+      // of firing a duplicate request (e.g. two leave requests from one tap).
+      const handler = attrs[k];
+      node.addEventListener('click', async (ev)=>{
+        if(node.dataset.busy === '1') return;
+        node.dataset.busy = '1';
+        const wasDisabled = node.disabled;
+        if('disabled' in node) node.disabled = true;
+        try{ await handler(ev); }
+        finally{ node.dataset.busy = ''; if('disabled' in node) node.disabled = wasDisabled; }
+      });
+    }
+    else if(k.startsWith('on') && typeof attrs[k] === 'function') node.addEventListener(k.slice(2), attrs[k]);
+    else if(k === 'html') node.innerHTML = attrs[k];
+    else if(k === 'value') node.value = attrs[k]==null?'':attrs[k];
+    else if(attrs[k] !== null && attrs[k] !== undefined) node.setAttribute(k, attrs[k]);
+  }
+  (children||[]).flat().forEach(c=>{
+    if(c===null||c===undefined||c===false) return;
+    node.appendChild(typeof c==='string'||typeof c==='number' ? document.createTextNode(c) : c);
+  });
+  return node;
+}
+function toast(message, isErr){
+  const id = Date.now()+Math.random();
+  state.toasts.push({id, message, isErr});
+  renderToasts();
+  setTimeout(()=>{ state.toasts = state.toasts.filter(t=>t.id!==id); renderToasts(); }, 3800);
+}
+function renderToasts(){
+  let wrap = document.getElementById('toastWrap');
+  if(!wrap){ wrap = el('div',{id:'toastWrap', class:'toast-wrap'}); document.body.appendChild(wrap); }
+  wrap.innerHTML='';
+  state.toasts.forEach(t=> wrap.appendChild(el('div',{class:'toast'+(t.isErr?' err':'')},[t.message])));
+}
+
+async function api(path, opts){
+  opts = opts || {};
+  const headers = opts.body && !(opts.body instanceof FormData) ? {'Content-Type':'application/json'} : {};
+  const res = await fetch('/api'+path, {
+    method: opts.method || 'GET', credentials:'include', headers,
+    body: opts.body ? (opts.body instanceof FormData ? opts.body : JSON.stringify(opts.body)) : undefined,
+  });
+  let data = null;
+  const text = await res.text();
+  try{ data = text ? JSON.parse(text) : null; }catch(e){}
+  if(!res.ok){ const err = new Error((data&&data.error)||('Request failed ('+res.status+')')); err.status=res.status; throw err; }
+  return data;
+}
+
+function fmtDate(iso){ if(!iso) return '—'; const d = new Date(iso); if(isNaN(d)) return iso; return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'}); }
+function fmtDateFull(iso){ if(!iso) return '—'; const d = new Date(iso); if(isNaN(d)) return iso; return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
+function fmtMoney(n){ if(n==null) return '—'; return '₹'+Number(n).toLocaleString('en-IN',{maximumFractionDigits:0}); }
+function fmtTime(iso){ if(!iso) return '—'; const d = new Date(iso); if(isNaN(d)) return '—'; return d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}); }
+const SHIFT_LABELS = {not_started:'Not checked in', checked_in:'On duty', on_lunch:'On lunch', checked_out:'Checked out'};
+function statusPillEl(status){
+  const cls = status==='approved'?'good':status==='rejected'?'bad':'warn';
+  return el('span',{class:'pill '+cls},[status]);
+}
+function docExpiryPill(expiresOn){
+  if(!expiresOn) return el('span',{class:'pill'},['no expiry']);
+  const days = Math.round((new Date(expiresOn+'T00:00:00')-new Date(new Date().toDateString()))/86400000);
+  if(days<0) return el('span',{class:'pill bad'},['Expired']);
+  if(days<=7) return el('span',{class:'pill bad'},['Expires in '+days+'d']);
+  if(days<=30) return el('span',{class:'pill warn'},['Expiring soon']);
+  return el('span',{class:'pill good'},['Valid']);
+}
+const DOC_LABELS = {license:'Driving Licence', aadhar:'Aadhar Card', pan:'PAN Card', police_verification:'Police Verification', badge:'Badge Photo', photo:'Photo', other:'Other'};
+const FUEL_LABELS = {petrol:'Petrol', cng:'CNG', diesel:'Diesel', other:'Other'};
+
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+  if(state.loading){ app.appendChild(el('div',{style:'padding:60px;text-align:center;color:var(--ink-soft)'},['Loading…'])); return; }
+  if(!state.loggedIn){ app.appendChild(renderLogin()); return; }
+  app.appendChild(renderApp());
+  renderToasts();
+}
+
+function renderLogin(){
+  const wrap = el('div',{class:'login-screen'});
+  const card = el('div',{class:'login-card'});
+  card.appendChild(el('div',{class:'mark'},['PFMS']));
+  card.appendChild(el('h1',{},['Pooja Fleet Management System']));
+  card.appendChild(el('div',{class:'sub'},['Driver login — Pooja Taxi Services']));
+  const phoneField = el('input',{type:'tel', inputmode:'numeric', placeholder:'10-digit mobile', autocomplete:'username'});
+  const pinField = el('input',{type:'password', inputmode:'numeric', placeholder:'4-6 digit PIN', autocomplete:'current-password', maxlength:6});
+  const err = el('div',{class:'error-text'},[state.loginError||'']);
+  const form = el('form',{},[
+    el('div',{class:'field'},[el('label',{},['Phone number']), phoneField]),
+    el('div',{class:'field'},[el('label',{},['PIN']), pinField]),
+    el('button',{type:'submit', class:'btn primary block'},['Log in']),
+    err,
+  ]);
+  form.addEventListener('submit', async(e)=>{
+    e.preventDefault();
+    try{
+      const driver = await api('/driver/login', {method:'POST', body:{phone:phoneField.value.trim(), pin:pinField.value.trim()}});
+      state.driver = driver; state.loginError=''; state.loading=true; render();
+      await loadAll();
+      state.loggedIn=true; state.loading=false; render();
+      startPolling();
+      resumeTrackingIfOnDuty();
+    }catch(ex){ state.loginError = ex.message; render(); }
+  });
+  card.appendChild(form);
+  wrap.appendChild(card);
+  return wrap;
+}
+
+async function loadAll(){
+  const [todayLog, logs, documents, leaveRequests, announcements, expenseClaims, incidents] = await Promise.all([
+    api('/driver/duty-log/today'), api('/driver/duty-logs'), api('/driver/documents'),
+    api('/driver/leave-requests'), api('/driver/announcements'), api('/driver/expense-claims'), api('/driver/incidents'),
+  ]);
+  state.todayLog = todayLog; state.logs = logs; state.documents = documents;
+  state.leaveRequests = leaveRequests; state.announcements = announcements; state.expenseClaims = expenseClaims;
+  state.incidents = incidents;
+}
+
+let pollTimer = null;
+function isFormOpen(){
+  // Duty Log has unsaved start/end-reading inputs; the expense sheet is a
+  // form overlay too. Skip the poll's render while either is in front of the
+  // driver, so a background refresh never silently wipes what they typed.
+  return state.view === 'duty' || !!state.expenseForm || !!state.incidentForm;
+}
+function startPolling(){
+  if(pollTimer) return;
+  pollTimer = setInterval(async ()=>{
+    if(!state.loggedIn || isFormOpen()) return;
+    try{
+      const [todayLog, logs, announcements] = await Promise.all([api('/driver/duty-log/today'), api('/driver/duty-logs'), api('/driver/announcements')]);
+      state.todayLog = todayLog; state.logs = logs; state.announcements = announcements;
+      render();
+    }catch(e){}
+  }, 30000);
+}
+
+function renderApp(){
+  const wrap = el('div',{class:'app'});
+  wrap.appendChild(el('div',{class:'topbar'},[
+    el('div',{class:'who'},[
+      el('div',{class:'mark', style:'padding:6px 8px;font-size:10.5px;'},['PFMS']),
+      el('div',{},[el('h1',{},[state.driver.name]), el('span',{},['PFMS'])]),
+    ]),
+    el('button',{class:'logout-btn', onclick:doLogout},['Log out']),
+  ]));
+
+  if(state.lowBattery){
+    wrap.appendChild(el('div',{class:'announce-banner', style:'background:var(--bad);'},[
+      el('span',{},['🔋 Battery is low — please charge your phone so tracking stays on.']),
+    ]));
+  }
+
+  const unacked = state.announcements.find(a=>!a.acknowledged_at);
+  if(unacked){
+    wrap.appendChild(el('div',{class:'announce-banner'},[
+      el('span',{},['📣 '+unacked.message]),
+      el('button',{onclick: async ()=>{ await api('/driver/announcements/'+unacked.id+'/ack',{method:'POST'}); state.announcements = await api('/driver/announcements'); render(); }},['Got it']),
+    ]));
+  }
+
+  const main = el('main',{});
+  if(state.view==='home') main.appendChild(renderHome());
+  else if(state.view==='duty') main.appendChild(renderDuty());
+  else if(state.view==='earnings') main.appendChild(renderEarnings());
+  else if(state.view==='leave') main.appendChild(renderLeave());
+  else if(state.view==='more') main.appendChild(renderMore());
+  wrap.appendChild(main);
+
+  wrap.appendChild(renderTabbar());
+  if(state.expenseForm) wrap.appendChild(renderExpenseModal());
+  if(state.incidentForm) wrap.appendChild(renderIncidentModal());
+  return wrap;
+}
+
+function renderTabbar(){
+  const items = [
+    {id:'home', emoji:'🏠', label:'Home'},
+    {id:'duty', emoji:'🚕', label:'Duty Log'},
+    {id:'earnings', emoji:'💰', label:'Earnings'},
+    {id:'leave', emoji:'🗓️', label:'Leave'},
+    {id:'more', emoji:'⋯', label:'More'},
+  ];
+  const bar = el('div',{class:'tabbar'});
+  items.forEach(it=> bar.appendChild(el('button',{class:'tab-item'+(state.view===it.id?' active':''), onclick:()=>{state.view=it.id; render();}},[
+    el('span',{class:'emoji'},[it.emoji]), el('span',{class:'lbl'},[it.label]),
+  ])));
+  return bar;
+}
+
+async function doLogout(){
+  if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
+  stopTracking(); stopMotionDetection();
+  try{ await api('/driver/logout', {method:'POST'}); }catch(e){}
+  state.loggedIn=false; render();
+}
+
+// ---------------- home ----------------
+// ---------------- location tracking + driving-behaviour detection ----------------
+// Only ever active while the driver is on duty (checked in, not on lunch) —
+// started on check-in / lunch-end, stopped on lunch-start / check-out.
+let geoWatchId = null;
+let motionHandler = null;
+let lastKnownCoords = null;
+const eventCooldowns = {};
+const EVENT_COOLDOWN_MS = 20000;
+const SPEEDING_THRESHOLD_KMH = 70;
+
+function canFireEvent(type){
+  const last = eventCooldowns[type] || 0;
+  if(Date.now() - last < EVENT_COOLDOWN_MS) return false;
+  eventCooldowns[type] = Date.now();
+  return true;
+}
+function reportDrivingEvent(type, gForce){
+  if(!canFireEvent(type)) return;
+  const body = { event_type: type };
+  if(gForce != null) body.g_force = gForce;
+  if(lastKnownCoords){ body.lat = lastKnownCoords.lat; body.lng = lastKnownCoords.lng; }
+  api('/driver/driving-events', {method:'POST', body}).catch(()=>{});
+}
+
+function startTracking(){
+  if(geoWatchId != null || !('geolocation' in navigator)) return;
+  geoWatchId = navigator.geolocation.watchPosition(
+    (pos)=>{
+      lastKnownCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      const speedKmh = pos.coords.speed != null ? pos.coords.speed * 3.6 : null;
+      api('/driver/location', {method:'POST', body:{ lat: lastKnownCoords.lat, lng: lastKnownCoords.lng, speed_kmh: speedKmh }}).catch(()=>{});
+      if(speedKmh != null && speedKmh > SPEEDING_THRESHOLD_KMH) reportDrivingEvent('speeding', null);
+    },
+    ()=>{},
+    { enableHighAccuracy:true, maximumAge:8000, timeout:15000 }
+  );
+}
+function stopTracking(){
+  if(geoWatchId != null){ navigator.geolocation.clearWatch(geoWatchId); geoWatchId = null; }
+}
+
+async function startMotionDetection(){
+  if(motionHandler || !('DeviceMotionEvent' in window)) return;
+  if(typeof DeviceMotionEvent.requestPermission === 'function'){
+    try{ const perm = await DeviceMotionEvent.requestPermission(); if(perm !== 'granted') return; }catch(e){ return; }
+  }
+  const G = 9.81;
+  motionHandler = (e)=>{
+    const acc = e.acceleration && e.acceleration.x != null ? e.acceleration : e.accelerationIncludingGravity;
+    if(!acc || acc.y == null) return;
+    const forward = acc.y; // best-effort — assumes phone mounted with its screen facing the driver, y-axis roughly forward/back
+    const magnitude = Math.sqrt((acc.x||0)**2 + (acc.y||0)**2 + (acc.z||0)**2);
+    if(magnitude > 2.5*G) reportDrivingEvent('possible_collision', magnitude/G);
+    else if(forward > 3.4) reportDrivingEvent('rapid_acceleration', Math.abs(forward)/G);
+    else if(forward < -4.0) reportDrivingEvent('harsh_braking', Math.abs(forward)/G);
+  };
+  window.addEventListener('devicemotion', motionHandler);
+}
+function stopMotionDetection(){
+  if(motionHandler){ window.removeEventListener('devicemotion', motionHandler); motionHandler = null; }
+}
+function resumeTrackingIfOnDuty(){
+  if(state.todayLog && state.todayLog.shift_status === 'checked_in'){
+    startTracking();
+    startMotionDetection();
+  }
+}
+
+async function shiftAction(action){
+  try{
+    const res = await api('/driver/duty-log/today/'+action, {method:'POST'});
+    if(res && res.pendingApproval){
+      toast(res.message || 'Waiting for admin approval.');
+      state.todayLog = await api('/driver/duty-log/today');
+      render();
+      return;
+    }
+    state.todayLog = res;
+    if(action==='check-in' || action==='lunch-end'){ startTracking(); startMotionDetection(); }
+    else if(action==='lunch-start' || action==='check-out'){ stopTracking(); stopMotionDetection(); }
+    render();
+  }catch(ex){ toast(ex.message, true); }
+}
+function renderShiftCard(){
+  const log = state.todayLog || {};
+  const status = log.shift_status || 'not_started';
+  const cls = status==='checked_in'?'good':status==='on_lunch'?'warn':status==='checked_out'?'bad':'warn';
+  const card = el('div',{class:'card'});
+  card.appendChild(el('div',{style:'display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'},[
+    el('h3',{style:'margin:0;'},['Today\'s shift']),
+    el('span',{class:'pill '+cls},[SHIFT_LABELS[status]]),
+  ]));
+  const times = [];
+  if(log.check_in_at) times.push('In '+fmtTime(log.check_in_at));
+  if(log.lunch_start_at) times.push('Lunch '+fmtTime(log.lunch_start_at)+(log.lunch_end_at?'–'+fmtTime(log.lunch_end_at):'…'));
+  if(log.check_out_at) times.push('Out '+fmtTime(log.check_out_at));
+  if(times.length) card.appendChild(el('div',{style:'font-size:12px;color:var(--ink-soft);margin-bottom:12px;'},[times.join(' · ')]));
+
+  const btnRow = el('div',{style:'display:flex;gap:8px;flex-wrap:wrap;'});
+  if(status==='not_started'){
+    btnRow.appendChild(el('button',{class:'btn good', style:'flex:1;', onclick:()=>shiftAction('check-in')},['Check In']));
+  } else if(status==='checked_in'){
+    btnRow.appendChild(el('button',{class:'btn ghost', style:'flex:1;', onclick:()=>shiftAction('lunch-start')},['Start Lunch']));
+    btnRow.appendChild(el('button',{class:'btn primary', style:'flex:1;', onclick:()=>shiftAction('check-out')},['Check Out']));
+  } else if(status==='on_lunch'){
+    btnRow.appendChild(el('button',{class:'btn good', style:'flex:1;', onclick:()=>shiftAction('lunch-end')},['End Lunch']));
+  } else if(log.reopen_status==='pending'){
+    card.appendChild(el('div',{style:'font-size:12.5px;color:var(--warn, #9c7014);margin-bottom:8px;'},['Waiting for admin approval to check in again.']));
+  } else {
+    card.appendChild(el('div',{style:'font-size:12.5px;color:var(--ink-soft);margin-bottom:8px;'},['Shift closed for today. Need to go back on duty?']));
+    btnRow.appendChild(el('button',{class:'btn ghost', style:'flex:1;', onclick:()=>shiftAction('check-in')},['Request to Check In Again']));
+  }
+  if(btnRow.children.length) card.appendChild(btnRow);
+  return card;
+}
+
+function renderHome(){
+  const wrap = el('div',{});
+  const todayEarning = state.todayLog && state.todayLog.total_earning;
+  const totalToDate = state.logs.reduce((s,l)=>s+(l.commission_amount||0),0);
+  const finesOutstanding = state.expenseClaims.filter(c=>c.category!=='fuel' && c.status==='pending').reduce((s,c)=>s+(c.amount||0),0);
+
+  wrap.appendChild(renderShiftCard());
+
+  const card = el('div',{class:'card'});
+  card.appendChild(el('h3',{},['Today, '+fmtDateFull(new Date().toISOString())]));
+  card.appendChild(el('div',{class:'stat-row'},[
+    el('div',{class:'stat'},[el('div',{class:'v'},[fmtMoney(todayEarning)]), el('div',{class:'l'},['Today\'s earning'])]),
+    el('div',{class:'stat'},[el('div',{class:'v'},[fmtMoney(totalToDate)]), el('div',{class:'l'},['Earned to date'])]),
+  ]));
+  wrap.appendChild(card);
+
+  wrap.appendChild(el('div',{class:'quick-grid'},[
+    quickBtn('🚕','Duty Log', ()=>{state.view='duty'; render();}),
+    quickBtn('💰','Earnings', ()=>{state.view='earnings'; render();}),
+    quickBtn('🗓️','Apply for Leave', ()=>{state.view='leave'; render();}),
+    quickBtn('⚠️','Log an Expense', ()=>{ state.expenseForm={category:'puncture'}; render(); }),
+    quickBtn('🚨','Report Accident', ()=>{ state.incidentForm={}; render(); }),
+  ]));
+
+  const card2 = el('div',{class:'card'});
+  card2.appendChild(el('h3',{},['Quick summary']));
+  card2.appendChild(el('div',{class:'list-row'},[el('span',{},['Fines/damages outstanding']), el('b',{},[fmtMoney(finesOutstanding)])]));
+  card2.appendChild(el('div',{class:'list-row'},[el('span',{},['Pending leave requests']), el('b',{},[String(state.leaveRequests.filter(r=>r.status==='pending').length)])]));
+  wrap.appendChild(card2);
+  return wrap;
+}
+function quickBtn(emoji, label, onclick){
+  return el('button',{class:'quick-btn', onclick},[el('span',{class:'emoji'},[emoji]), label]);
+}
+
+// ---------------- duty log ----------------
+function renderDuty(){
+  const wrap = el('div',{});
+  wrap.appendChild(el('div',{class:'page-title'},['Duty Log']));
+  wrap.appendChild(el('div',{class:'page-sub'},[fmtDateFull(new Date().toISOString())+' — start and end reading, and today\'s fuel']));
+
+  const log = state.todayLog || {};
+  const locked = log.shift_status === 'checked_out';
+
+  if(locked){
+    wrap.appendChild(el('div',{class:'card', style:'background:var(--bad-soft); border-color:var(--bad);'},[
+      el('div',{style:'font-weight:700;font-size:13.5px;color:var(--bad);'},['Checked out for today']),
+      el('div',{style:'font-size:12.5px;color:var(--ink-soft);margin-top:4px;'},['Readings and fuel entries are locked. Contact the office if something needs correcting.']),
+    ]));
+  }
+
+  const card = el('div',{class:'card'});
+  const startInput = el('input',{type:'number', step:'0.1', value: log.start_reading!=null?log.start_reading:'', disabled:locked?'disabled':null});
+  const endInput = el('input',{type:'number', step:'0.1', value: log.end_reading!=null?log.end_reading:'', disabled:locked?'disabled':null});
+  const runOut = el('div',{class:'stat', style:'margin-top:10px;'},[el('div',{class:'v'},[log.total_run!=null?log.total_run+' km':'—']), el('div',{class:'l'},['Total run'])]);
+  function recompute(){
+    const s = parseFloat(startInput.value), e = parseFloat(endInput.value);
+    runOut.querySelector('.v').textContent = (!isNaN(s)&&!isNaN(e)&&e>=s) ? (e-s).toFixed(1)+' km' : '—';
+  }
+  startInput.addEventListener('input', recompute);
+  endInput.addEventListener('input', recompute);
+  card.appendChild(el('div',{class:'field'},[el('label',{},['Start reading (km)']), startInput]));
+  card.appendChild(el('div',{class:'field'},[el('label',{},['End reading (km)']), endInput]));
+  card.appendChild(runOut);
+  if(!locked){
+    const saveErr = el('div',{class:'error-text'},['']);
+    card.appendChild(saveErr);
+    card.appendChild(el('button',{class:'btn primary block', style:'margin-top:10px;', onclick: async ()=>{
+      try{
+        state.todayLog = await api('/driver/duty-log/today', {method:'PUT', body:{start_reading:startInput.value, end_reading:endInput.value}});
+        toast('Readings saved.');
+        render();
+      }catch(ex){ saveErr.textContent = ex.message; }
+    }},['Save readings']));
+  }
+  wrap.appendChild(card);
+
+  const fuelCard = el('div',{class:'card'});
+  fuelCard.appendChild(el('h3',{},['Fuel today']));
+  const entries = (state.todayLog && state.todayLog.fuel_entries) || [];
+  if(!entries.length) fuelCard.appendChild(el('div',{class:'empty'},['No fuel logged yet today.']));
+  entries.forEach(f=>{
+    fuelCard.appendChild(el('div',{class:'fuel-row'},[
+      el('span',{class:'badge'},[FUEL_LABELS[f.fuel_type]||f.fuel_type]),
+      el('span',{style:'flex:1;'},[f.amount?fmtMoney(f.amount):'no amount']),
+      f.has_pump_photo?el('span',{title:'Pump photo uploaded'},['⛽']):null,
+      f.has_odometer_photo?el('span',{title:'Odometer photo uploaded'},['📷']):null,
+      locked?null:el('button',{class:'btn ghost', style:'padding:3px 9px;font-size:11px;', onclick: async ()=>{
+        try{
+          const res = await api('/driver/duty-log/today/fuel/'+f.id, {method:'DELETE'});
+          state.todayLog = {...state.todayLog, fuel_entries: res.fuel_entries};
+          toast('Fuel entry deleted.');
+          render();
+        }catch(ex){ toast(ex.message, true); }
+      }},['Delete']),
+    ]));
+  });
+
+  if(!locked){
+    const box = el('div',{class:'upload-box'});
+    const typeSelect = el('select',{});
+    Object.entries(FUEL_LABELS).forEach(([v,l])=> typeSelect.appendChild(el('option',{value:v},[l])));
+    const amountInput = el('input',{type:'number', step:'0.5', placeholder:'Amount paid'});
+    const pumpFile = el('input',{type:'file', accept:'image/*', capture:'environment'});
+    const odoFile = el('input',{type:'file', accept:'image/*', capture:'environment'});
+    box.appendChild(el('div',{class:'field'},[el('label',{},['Fuel type']), typeSelect]));
+    box.appendChild(el('div',{class:'field'},[el('label',{},['Amount']), amountInput]));
+    box.appendChild(el('div',{class:'field'},[el('label',{},['Pump reading photo']), pumpFile]));
+    box.appendChild(el('div',{class:'field'},[el('label',{},['Odometer photo']), odoFile]));
+    const fuelErr = el('div',{class:'error-text'},['']);
+    box.appendChild(fuelErr);
+    box.appendChild(el('button',{class:'btn good block', onclick: async ()=>{
+      const fd = new FormData();
+      fd.append('fuel_type', typeSelect.value);
+      if(amountInput.value) fd.append('amount', amountInput.value);
+      if(pumpFile.files[0]) fd.append('pump_photo', pumpFile.files[0]);
+      if(odoFile.files[0]) fd.append('odometer_photo', odoFile.files[0]);
+      try{
+        const res = await api('/driver/duty-log/today/fuel', {method:'POST', body:fd});
+        state.todayLog = {...state.todayLog, fuel_entries: res.fuel_entries};
+        toast('Fuel entry added.');
+        render();
+      }catch(ex){ fuelErr.textContent = ex.message; }
+    }},['+ Add fuel entry']));
+    fuelCard.appendChild(box);
+  }
+  wrap.appendChild(fuelCard);
+  return wrap;
+}
+
+// ---------------- earnings ----------------
+function renderEarnings(){
+  const wrap = el('div',{});
+  wrap.appendChild(el('div',{class:'page-title'},['Earnings']));
+  wrap.appendChild(el('div',{class:'page-sub'},['Updates automatically once the office enters your day\'s total.']));
+  const card = el('div',{class:'card'});
+  if(!state.logs.length) card.appendChild(el('div',{class:'empty'},['No earnings recorded yet.']));
+  state.logs.forEach(l=>{
+    card.appendChild(el('div',{class:'list-row'},[
+      el('div',{class:'meta'},[el('b',{},[fmtDateFull(l.log_date)]), el('span',{},[
+        (l.total_run!=null?l.total_run+' km · ':'')+(l.trip_count!=null?l.trip_count+' trips':'no trips logged'),
+      ])]),
+      el('div',{style:'text-align:right;'},[
+        el('b',{},[l.total_earning!=null?fmtMoney(l.commission_amount):'—']),
+        el('div',{style:'font-size:10.5px;color:var(--ink-soft);'},[l.total_earning!=null?('of '+fmtMoney(l.total_earning)+' total'):'awaiting office entry']),
+      ]),
+    ]));
+  });
+  wrap.appendChild(card);
+  return wrap;
+}
+
+// ---------------- leave ----------------
+function renderLeave(){
+  const wrap = el('div',{});
+  wrap.appendChild(el('div',{class:'page-title'},['Leave']));
+  wrap.appendChild(el('div',{class:'page-sub'},['Apply for leave and track approval.']));
+
+  const card = el('div',{class:'card'});
+  card.appendChild(el('h3',{},['Apply for leave']));
+  const startInput = el('input',{type:'date'});
+  const endInput = el('input',{type:'date'});
+  const reasonInput = el('textarea',{placeholder:'Reason (optional)'});
+  card.appendChild(el('div',{class:'field'},[el('label',{},['From']), startInput]));
+  card.appendChild(el('div',{class:'field'},[el('label',{},['To']), endInput]));
+  card.appendChild(el('div',{class:'field'},[el('label',{},['Reason']), reasonInput]));
+  const err = el('div',{class:'error-text'},['']);
+  card.appendChild(err);
+  card.appendChild(el('button',{class:'btn primary block', onclick: async ()=>{
+    if(!startInput.value || !endInput.value){ err.textContent='Pick both dates.'; return; }
+    try{
+      await api('/driver/leave-requests', {method:'POST', body:{start_date:startInput.value, end_date:endInput.value, reason:reasonInput.value}});
+      toast('Leave request submitted.');
+      state.leaveRequests = await api('/driver/leave-requests');
+      render();
+    }catch(ex){ err.textContent = ex.message; }
+  }},['Submit request']));
+  wrap.appendChild(card);
+
+  const histCard = el('div',{class:'card'});
+  histCard.appendChild(el('h3',{},['My requests']));
+  if(!state.leaveRequests.length) histCard.appendChild(el('div',{class:'empty'},['No leave requests yet.']));
+  state.leaveRequests.forEach(r=>{
+    histCard.appendChild(el('div',{class:'list-row'},[
+      el('div',{class:'meta'},[el('b',{},[fmtDate(r.start_date)+' – '+fmtDate(r.end_date)]), el('span',{},[r.reason||'no reason given'])]),
+      statusPillEl(r.status),
+    ]));
+  });
+  wrap.appendChild(histCard);
+  return wrap;
+}
+
+// ---------------- more (documents + expense claims + logout) ----------------
+function renderMore(){
+  const wrap = el('div',{});
+  wrap.appendChild(el('div',{class:'page-title'},['More']));
+
+  const docCard = el('div',{class:'card'});
+  docCard.appendChild(el('h3',{},['My documents']));
+  if(!state.documents.length) docCard.appendChild(el('div',{class:'empty'},['No documents on file yet.']));
+  state.documents.forEach(d=>{
+    docCard.appendChild(el('div',{class:'list-row'},[
+      el('div',{class:'meta'},[el('b',{},[DOC_LABELS[d.doc_type]||d.doc_type]), el('span',{},[d.expires_on?('expires '+fmtDate(d.expires_on)):'no expiry set'])]),
+      docExpiryPill(d.expires_on),
+    ]));
+  });
+  wrap.appendChild(docCard);
+
+  const claimCard = el('div',{class:'card'});
+  claimCard.appendChild(el('div',{style:'display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'},[
+    el('h3',{style:'margin:0;'},['My expense claims']),
+    el('button',{class:'btn ghost', style:'padding:6px 12px;font-size:12px;', onclick:()=>{state.expenseForm={category:'puncture'}; render();}},['+ New']),
+  ]));
+  if(!state.expenseClaims.length) claimCard.appendChild(el('div',{class:'empty'},['No claims submitted yet.']));
+  state.expenseClaims.forEach(c=>{
+    claimCard.appendChild(el('div',{class:'list-row'},[
+      el('div',{class:'meta'},[el('b',{},[c.category[0].toUpperCase()+c.category.slice(1)]), el('span',{},[fmtDate(c.created_at)+(c.amount?(' · '+fmtMoney(c.amount)):'')])]),
+      statusPillEl(c.status),
+    ]));
+  });
+  wrap.appendChild(claimCard);
+
+  const incidentCard = el('div',{class:'card'});
+  incidentCard.appendChild(el('div',{style:'display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'},[
+    el('h3',{style:'margin:0;'},['My reported incidents']),
+    el('button',{class:'btn ghost', style:'padding:6px 12px;font-size:12px;', onclick:()=>{state.incidentForm={}; render();}},['+ Report']),
+  ]));
+  if(!state.incidents.length) incidentCard.appendChild(el('div',{class:'empty'},['Nothing reported.']));
+  state.incidents.forEach(i=>{
+    incidentCard.appendChild(el('div',{class:'list-row'},[
+      el('div',{class:'meta'},[el('b',{},[fmtDate(i.incident_date)]), el('span',{},[i.location||i.description||''])]),
+      statusPillEl(i.status),
+    ]));
+  });
+  wrap.appendChild(incidentCard);
+
+  const pinCard = el('div',{class:'card'});
+  pinCard.appendChild(el('h3',{},['Change my PIN']));
+  const curPinInput = el('input',{type:'password', inputmode:'numeric', placeholder:'Current PIN', maxlength:6, autocomplete:'off'});
+  const newPinInput = el('input',{type:'password', inputmode:'numeric', placeholder:'New PIN (4-6 digits)', maxlength:6, autocomplete:'off'});
+  const confirmPinInput = el('input',{type:'password', inputmode:'numeric', placeholder:'Confirm new PIN', maxlength:6, autocomplete:'off'});
+  const pinErr = el('div',{class:'error-text'},['']);
+  pinCard.appendChild(el('div',{class:'field'},[el('label',{},['Current PIN']), curPinInput]));
+  pinCard.appendChild(el('div',{class:'field'},[el('label',{},['New PIN']), newPinInput]));
+  pinCard.appendChild(el('div',{class:'field'},[el('label',{},['Confirm new PIN']), confirmPinInput]));
+  pinCard.appendChild(pinErr);
+  pinCard.appendChild(el('button',{class:'btn primary block', onclick: async ()=>{
+    pinErr.textContent = '';
+    if(newPinInput.value !== confirmPinInput.value){ pinErr.textContent = 'New PIN and confirmation do not match.'; return; }
+    try{
+      await api('/driver/change-pin', {method:'POST', body:{currentPin:curPinInput.value, newPin:newPinInput.value}});
+      toast('PIN updated.');
+      curPinInput.value=''; newPinInput.value=''; confirmPinInput.value='';
+    }catch(ex){ pinErr.textContent = ex.message; }
+  }},['Update PIN']));
+  wrap.appendChild(pinCard);
+
+  wrap.appendChild(el('button',{class:'btn ghost block', onclick:doLogout},['Log out']));
+  return wrap;
+}
+
+function renderExpenseModal(){
+  const overlay = el('div',{style:'position:fixed;inset:0;background:rgba(20,15,10,.5);display:flex;align-items:flex-end;z-index:50;'});
+  const sheet = el('div',{style:'background:var(--cream);width:100%;max-width:480px;margin:0 auto;border-radius:18px 18px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom));max-height:85vh;overflow-y:auto;'});
+  sheet.appendChild(el('h3',{style:'margin-bottom:14px;'},['Log an expense']));
+  const catSelect = el('select',{});
+  [['puncture','Puncture'],['accident','Accident'],['other','Other']].forEach(([v,l])=> catSelect.appendChild(el('option',{value:v, selected:state.expenseForm.category===v?'selected':null},[l])));
+  const amountInput = el('input',{type:'number', step:'0.5', placeholder:'Amount (if any)'});
+  const notesInput = el('textarea',{placeholder:'What happened?'});
+  const photoInput = el('input',{type:'file', accept:'image/*', capture:'environment'});
+  sheet.appendChild(el('div',{class:'field'},[el('label',{},['Category']), catSelect]));
+  sheet.appendChild(el('div',{class:'field'},[el('label',{},['Amount']), amountInput]));
+  sheet.appendChild(el('div',{class:'field'},[el('label',{},['Notes']), notesInput]));
+  sheet.appendChild(el('div',{class:'field'},[el('label',{},['Photo']), photoInput]));
+  const err = el('div',{class:'error-text'},['']);
+  sheet.appendChild(err);
+  sheet.appendChild(el('div',{style:'display:flex;gap:10px;margin-top:6px;'},[
+    el('button',{class:'btn ghost', style:'flex:1;', onclick:()=>{state.expenseForm=null; render();}},['Cancel']),
+    el('button',{class:'btn primary', style:'flex:1;', onclick: async ()=>{
+      const fd = new FormData();
+      fd.append('category', catSelect.value);
+      if(amountInput.value) fd.append('amount', amountInput.value);
+      if(notesInput.value) fd.append('notes', notesInput.value);
+      if(photoInput.files[0]) fd.append('file', photoInput.files[0]);
+      try{
+        await api('/driver/expense-claims', {method:'POST', body:fd});
+        toast('Expense claim submitted.');
+        state.expenseClaims = await api('/driver/expense-claims');
+        state.expenseForm = null;
+        render();
+      }catch(ex){ err.textContent = ex.message; }
+    }},['Submit']),
+  ]));
+  overlay.appendChild(sheet);
+  return overlay;
+}
+
+function renderIncidentModal(){
+  const overlay = el('div',{style:'position:fixed;inset:0;background:rgba(20,15,10,.5);display:flex;align-items:flex-end;z-index:50;'});
+  const sheet = el('div',{style:'background:var(--cream);width:100%;max-width:480px;margin:0 auto;border-radius:18px 18px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom));max-height:85vh;overflow-y:auto;'});
+  sheet.appendChild(el('h3',{style:'margin-bottom:4px;'},['Report an accident']));
+  sheet.appendChild(el('div',{style:'font-size:12.5px;color:var(--ink-soft);margin-bottom:14px;'},['This goes straight to the fleet office.']));
+  const dateInput = el('input',{type:'date', value:new Date().toISOString().slice(0,10)});
+  const timeInput = el('input',{type:'time'});
+  const locationInput = el('input',{type:'text', placeholder:'Where did it happen?'});
+  const descInput = el('textarea',{placeholder:'What happened?'});
+  const otherVehicleInput = el('textarea',{placeholder:'Other vehicle involved (if any)'});
+  const policeInput = el('input',{type:'text', placeholder:'Police complaint number (if filed)'});
+  const injuryInput = el('textarea',{placeholder:'Injury details (if any)'});
+  const photoInput = el('input',{type:'file', accept:'image/*', capture:'environment', multiple:true});
+  sheet.appendChild(el('div',{class:'field'},[el('label',{},['Date']), dateInput]));
+  sheet.appendChild(el('div',{class:'field'},[el('label',{},['Time']), timeInput]));
+  sheet.appendChild(el('div',{class:'field'},[el('label',{},['Location']), locationInput]));
+  sheet.appendChild(el('div',{class:'field'},[el('label',{},['What happened']), descInput]));
+  sheet.appendChild(el('div',{class:'field'},[el('label',{},['Other vehicle']), otherVehicleInput]));
+  sheet.appendChild(el('div',{class:'field'},[el('label',{},['Police complaint no.']), policeInput]));
+  sheet.appendChild(el('div',{class:'field'},[el('label',{},['Injuries']), injuryInput]));
+  sheet.appendChild(el('div',{class:'field'},[el('label',{},['Photos']), photoInput]));
+  const err = el('div',{class:'error-text'},['']);
+  sheet.appendChild(err);
+  sheet.appendChild(el('div',{style:'display:flex;gap:10px;margin-top:6px;'},[
+    el('button',{class:'btn ghost', style:'flex:1;', onclick:()=>{state.incidentForm=null; render();}},['Cancel']),
+    el('button',{class:'btn primary', style:'flex:1;', onclick: async ()=>{
+      const fd = new FormData();
+      fd.append('incident_date', dateInput.value);
+      if(timeInput.value) fd.append('incident_time', timeInput.value);
+      if(locationInput.value) fd.append('location', locationInput.value);
+      if(descInput.value) fd.append('description', descInput.value);
+      if(otherVehicleInput.value) fd.append('other_vehicle_info', otherVehicleInput.value);
+      if(policeInput.value) fd.append('police_complaint_no', policeInput.value);
+      if(injuryInput.value) fd.append('injury_details', injuryInput.value);
+      Array.from(photoInput.files||[]).forEach(f=> fd.append('photos', f));
+      try{
+        await api('/driver/incidents', {method:'POST', body:fd});
+        toast('Incident reported. The office has been notified.');
+        state.incidents = await api('/driver/incidents');
+        state.incidentForm = null;
+        render();
+      }catch(ex){ err.textContent = ex.message; }
+    }},['Submit']),
+  ]));
+  overlay.appendChild(sheet);
+  return overlay;
+}
+
+document.addEventListener('keydown', (e)=>{
+  if(e.key==='Escape' && state.expenseForm){ state.expenseForm=null; render(); }
+  if(e.key==='Escape' && state.incidentForm){ state.incidentForm=null; render(); }
+});
+
+// Best-effort low-battery nudge while on duty — Battery Status API isn't
+// available on iOS Safari, so this silently does nothing there.
+if('getBattery' in navigator){
+  navigator.getBattery().then((battery)=>{
+    function check(){
+      const onDuty = state.todayLog && state.todayLog.shift_status === 'checked_in';
+      const low = onDuty && !battery.charging && battery.level < 0.15;
+      if(low !== state.lowBattery){ state.lowBattery = low; render(); }
+    }
+    battery.addEventListener('levelchange', check);
+    battery.addEventListener('chargingchange', check);
+    setInterval(check, 60000);
+  }).catch(()=>{});
+}
+
+async function boot(){
+  try{
+    state.driver = await api('/driver/me');
+    await loadAll();
+    state.loggedIn = true;
+    startPolling();
+    resumeTrackingIfOnDuty();
+  }catch(e){ state.loggedIn = false; }
+  state.loading = false;
+  render();
+}
+boot();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('/driver/sw.js').catch(()=>{}); });
+}
+</script>
+</body>
+</html>

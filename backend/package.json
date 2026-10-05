@@ -1,0 +1,19 @@
+{
+  "name": "fleet-command-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Fleet Command — Phase 1 (drivers, vehicles, documents admin console). Uses MySQL (via mysql2) for storage.",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "seed": "node src/seed.js",
+    "migrate": "node src/migrate-to-mysql.js"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "mysql2": "^3.24.3"
+  }
+}

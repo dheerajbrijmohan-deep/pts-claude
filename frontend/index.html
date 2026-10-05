@@ -1,0 +1,2807 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PFMS</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root{
+  --cream:#F3E8D6; --card:#EADFC8; --card-2:#E2D5BA; --ink:#2A2118; --ink-soft:#71624E;
+  --line:#DBCBA9; --accent:#C1602A; --accent-ink:#FBF3E9; --accent-soft:#EAC9A9;
+  --rail:#2A2019; --rail-ink:#EFE3D0; --rail-ink-soft:#B7A488; --rail-line:#453629;
+  --good:#4F6E3C; --good-soft:#DCE5C8; --warn:#9C7014; --warn-soft:#EFDDAC;
+  --bad:#93362F; --bad-soft:#EDD0C8; --mono:#5A4C38; --shadow:0 12px 30px -18px rgba(42,33,24,0.45);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --cream:#1D1712; --card:#271F17; --card-2:#2E251B; --ink:#EFE4D0; --ink-soft:#B3A387;
+    --line:#453729; --accent:#E27C42; --accent-ink:#241207; --accent-soft:#4A3320;
+    --rail:#141009; --rail-ink:#F0E5D2; --rail-ink-soft:#9C8B70; --rail-line:#332920;
+    --good:#8CAE6C; --good-soft:#2E3A22; --warn:#D6AA4E; --warn-soft:#3D3115;
+    --bad:#E08579; --bad-soft:#3F2420; --mono:#C2B393; --shadow:0 12px 30px -18px rgba(0,0,0,0.6);
+  }
+}
+:root[data-theme="dark"]{
+  --cream:#1D1712; --card:#271F17; --card-2:#2E251B; --ink:#EFE4D0; --ink-soft:#B3A387;
+  --line:#453729; --accent:#E27C42; --accent-ink:#241207; --accent-soft:#4A3320;
+  --rail:#141009; --rail-ink:#F0E5D2; --rail-ink-soft:#9C8B70; --rail-line:#332920;
+  --good:#8CAE6C; --good-soft:#2E3A22; --warn:#D6AA4E; --warn-soft:#3D3115;
+  --bad:#E08579; --bad-soft:#3F2420; --mono:#C2B393; --shadow:0 12px 30px -18px rgba(0,0,0,0.6);
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{margin:0; background:var(--cream); color:var(--ink); font-family:"Plus Jakarta Sans",system-ui,sans-serif; line-height:1.5;}
+h1,h2,h3{font-family:"Playfair Display",Georgia,serif; margin:0;}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;}
+button{font-family:inherit;}
+a{color:inherit;}
+input,select,textarea{font-family:inherit; font-size:14px;}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+/* ---------- login ---------- */
+.login-screen{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;}
+.login-card{width:100%; max-width:360px; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:36px 32px; box-shadow:var(--shadow);}
+.login-card .mark{display:inline-flex; align-items:center; justify-content:center; padding:9px 12px; border-radius:10px; background:var(--accent); color:var(--accent-ink); font-family:"Playfair Display",serif; font-weight:700; font-size:16px; letter-spacing:.03em; margin-bottom:16px;}
+.login-card h1{font-size:19px; font-style:italic; margin-bottom:4px; text-wrap:balance;}
+.login-card .sub{font-size:13px; color:var(--ink-soft); margin-bottom:22px;}
+.field{margin-bottom:14px;}
+.field label{display:block; font-size:11.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin-bottom:5px; font-weight:600;}
+.field input,.field select,.field textarea{
+  width:100%; padding:9px 11px; border-radius:8px; border:1px solid var(--line); background:var(--cream); color:var(--ink);
+}
+.field textarea{resize:vertical; min-height:60px;}
+.view-value{font-size:14px; color:var(--ink); padding:8px 0 2px; min-height:20px; line-height:1.4; word-break:break-word;}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:6px; border:none; border-radius:9px;
+  padding:9px 16px; font-size:13.5px; font-weight:700; cursor:pointer; background:var(--card-2); color:var(--ink);
+}
+.btn.primary{background:var(--accent); color:var(--accent-ink);}
+.btn.ghost{background:transparent; border:1px solid var(--line); color:var(--ink);}
+.btn.danger{background:var(--bad); color:#fff;}
+.btn.warn{background:var(--warn); color:#241a00;}
+.btn.good{background:var(--good); color:#fff;}
+.btn:disabled{opacity:.5; cursor:not-allowed;}
+.btn.block{width:100%;}
+.error-text{color:var(--bad); font-size:12.5px; margin-top:10px; min-height:1em;}
+
+/* ---------- shell ---------- */
+.shell{display:flex; min-height:100vh;}
+.rail{width:230px; flex:0 0 230px; background:var(--rail); color:var(--rail-ink); display:flex; flex-direction:column; position:sticky; top:0; height:100vh;}
+.rail-brand{padding:22px 20px 16px; border-bottom:1px solid var(--rail-line); display:flex; gap:10px; align-items:center;}
+.rail-brand .mark{padding:6px 8px; border-radius:7px; background:var(--accent); color:var(--accent-ink); display:flex; align-items:center; justify-content:center; font-family:"Playfair Display",serif; font-weight:700; font-size:11.5px; letter-spacing:.02em; flex:0 0 auto;}
+.rail-brand h1{font-size:17px; line-height:1.2;}
+.rail-brand span{display:block; font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--rail-ink-soft);}
+.rail nav{padding:12px; overflow-y:auto; flex:1;}
+.rail .group-label{font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--rail-ink-soft); padding:14px 10px 6px;}
+.rail-link{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:9px 11px; border-radius:7px; font-size:13.5px; color:var(--rail-ink-soft); margin:1px 0; cursor:pointer; border:none; background:none; width:100%; text-align:left;}
+.rail-link:hover{background:rgba(255,255,255,.06); color:var(--rail-ink);}
+.rail-link.active{background:var(--accent); color:var(--accent-ink); font-weight:700;}
+.rail-link.disabled{cursor:default; opacity:.55;}
+.rail-link.disabled:hover{background:none; color:var(--rail-ink-soft);}
+.rail-link .soon{font-family:"IBM Plex Mono",monospace; font-size:9px; background:rgba(255,255,255,.08); padding:1px 5px; border-radius:4px;}
+.rail-foot{padding:14px 20px 18px; border-top:1px solid var(--rail-line);}
+.rail-foot button{width:100%;}
+
+main{flex:1; min-width:0; padding:32px 40px 60px; max-width:1180px;}
+.page-head{display:flex; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom:22px; flex-wrap:wrap;}
+.page-head h2{font-size:26px;}
+.page-head .sub{font-size:13px; color:var(--ink-soft); margin-top:4px;}
+.toolbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+.toolbar input[type=search]{padding:8px 12px; border-radius:8px; border:1px solid var(--line); background:var(--card); min-width:200px;}
+
+.kpis{display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:12px; margin-bottom:26px;}
+.kpi.attn{border-color:var(--warn); background:var(--warn-soft);}
+.kpi.attn .v, .kpi.attn .l{color:var(--warn);}
+.kpi{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px;}
+.kpi .v{font-family:"IBM Plex Mono",monospace; font-size:24px; font-weight:500;}
+.kpi .l{font-size:11px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; margin-top:2px;}
+.kpi.clickable{cursor:pointer; transition:transform .12s ease, box-shadow .12s ease;}
+.kpi.clickable:hover{transform:translateY(-1px); box-shadow:0 4px 14px rgba(0,0,0,.08);}
+.kpi.clickable:active{transform:translateY(0);}
+
+.filter-chip{display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:20px; background:var(--warn-soft); color:var(--warn); font-size:12.5px; font-weight:600;}
+.filter-chip button{border:none; background:none; color:inherit; cursor:pointer; font-size:14px; line-height:1; padding:0;}
+
+.card{background:var(--card); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); overflow:hidden;}
+table{width:100%; border-collapse:collapse; font-size:13.5px;}
+th{text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); padding:12px 16px; border-bottom:1px solid var(--line); background:var(--card-2);}
+td{padding:11px 16px; border-bottom:1px solid var(--line); vertical-align:middle;}
+tbody tr{cursor:pointer;}
+tbody tr:hover{background:var(--card-2);}
+tbody tr:last-child td{border-bottom:none;}
+.empty-row td{cursor:default; text-align:center; color:var(--ink-soft); padding:34px;}
+.empty-row:hover{background:none;}
+
+.pill{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; text-transform:capitalize;}
+.pill.good{background:var(--good-soft); color:var(--good);}
+.pill.warn{background:var(--warn-soft); color:var(--warn);}
+.pill.bad{background:var(--bad-soft); color:var(--bad);}
+.pill::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor;}
+
+.name-cell b{display:block;}
+.name-cell span{font-size:11.5px; color:var(--ink-soft);}
+
+/* ---------- modal / drawer ---------- */
+.overlay{position:fixed; inset:0; background:rgba(20,15,10,.45); display:flex; justify-content:flex-end; z-index:50;}
+.drawer{width:min(560px, 100%); background:var(--cream); height:100vh; overflow-y:auto; box-shadow:-16px 0 40px -20px rgba(0,0,0,.4); animation:slidein .18s ease-out;}
+@keyframes slidein{from{transform:translateX(24px); opacity:0;} to{transform:translateX(0); opacity:1;}}
+@media (prefers-reduced-motion: reduce){ .drawer{animation:none;} }
+.drawer-head{display:flex; justify-content:space-between; align-items:flex-start; padding:24px 26px 16px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--cream); z-index:2;}
+.drawer-head h3{font-size:21px;}
+.drawer-body{padding:22px 26px 40px;}
+.close-x{background:none; border:none; font-size:20px; cursor:pointer; color:var(--ink-soft); line-height:1;}
+
+.overlay.center{align-items:center; justify-content:center;}
+.modal{width:min(460px, 92vw); background:var(--cream); border-radius:16px; box-shadow:var(--shadow); padding:24px 26px;}
+.modal h3{font-size:19px; margin-bottom:6px;}
+.modal .desc{font-size:13px; color:var(--ink-soft); margin-bottom:16px;}
+.modal .actions{display:flex; justify-content:flex-end; gap:8px; margin-top:18px;}
+
+.tabs{display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:18px;}
+.tab-btn{background:none; border:none; padding:9px 4px; margin-right:18px; font-size:13.5px; font-weight:600; color:var(--ink-soft); cursor:pointer; border-bottom:2px solid transparent;}
+.tab-btn.active{color:var(--accent); border-bottom-color:var(--accent);}
+
+.form-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px 14px;}
+.form-grid .full{grid-column:1/-1;}
+@media (max-width:520px){.form-grid{grid-template-columns:1fr;}}
+
+.doc-row{display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--line);}
+.doc-row:last-child{border-bottom:none;}
+.doc-row .icon{width:34px; height:34px; border-radius:8px; background:var(--card-2); display:flex; align-items:center; justify-content:center; font-size:15px; flex:0 0 auto;}
+.doc-row .meta{flex:1; min-width:0;}
+.doc-row .meta b{font-size:13.5px; display:block;}
+.doc-row .meta span{font-size:11.5px; color:var(--ink-soft);}
+.doc-row .row-actions{display:flex; gap:6px; flex:0 0 auto;}
+.icon-btn{background:var(--card-2); border:1px solid var(--line); border-radius:7px; padding:5px 9px; font-size:13px; cursor:pointer; color:var(--ink); text-decoration:none; display:inline-flex; align-items:center; line-height:1;}
+.icon-btn.danger{color:var(--bad);}
+
+.upload-box{border:1.5px dashed var(--line); border-radius:12px; padding:16px; margin-top:6px; background:var(--card);}
+.hist-row{display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); font-size:12.5px;}
+.hist-row:last-child{border-bottom:none;}
+.hist-row .when{color:var(--ink-soft); flex:0 0 132px; font-family:"IBM Plex Mono",monospace; font-size:11px;}
+
+.toast-wrap{position:fixed; bottom:20px; right:20px; display:flex; flex-direction:column; gap:8px; z-index:100;}
+.toast{background:var(--rail); color:var(--rail-ink); padding:11px 16px; border-radius:9px; font-size:13px; box-shadow:var(--shadow); max-width:320px;}
+.toast.err{background:var(--bad);}
+
+.coming-soon{padding:60px 20px; text-align:center; color:var(--ink-soft);}
+.coming-soon h2{margin-bottom:8px; color:var(--ink);}
+
+.menu-toggle{display:none;}
+@media (max-width:900px){
+  .rail{position:fixed; z-index:40; transform:translateX(-100%); transition:transform .2s;}
+  .rail.open{transform:translateX(0);}
+  .rail-scrim{display:none; position:fixed; inset:0; background:rgba(20,15,10,.4); z-index:39;}
+  .rail-scrim.open{display:block;}
+  .menu-toggle{
+    display:flex; align-items:center; justify-content:center; width:36px; height:36px;
+    border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--ink);
+    font-size:16px; cursor:pointer; margin-bottom:16px;
+  }
+  main{padding:20px;}
+  .kpis{grid-template-columns:repeat(2,1fr);}
+}
+@media (prefers-reduced-motion: reduce){ .rail{transition:none;} }
+@media print{ .rail, .rail-scrim, .menu-toggle, .page-head .toolbar, .form-grid, .btn, .toast-wrap, .topbar-user{display:none !important;} .shell{display:block;} main{padding:0;} }
+.topbar-user{position:fixed; top:14px; right:18px; z-index:60; display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:6px 8px 6px 16px; box-shadow:var(--shadow);}
+.topbar-user .who{font-size:12px; color:var(--ink-soft); white-space:nowrap;}
+.topbar-user button{padding:6px 14px; font-size:12.5px;}
+@media (max-width:900px){ .topbar-user{top:auto; bottom:14px; right:14px; left:14px; justify-content:space-between;} }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const state = {
+  loading:true, loggedIn:false, loginError:'',
+  view:'dashboard',
+  drivers:[], vehicles:[], expiringDocs:[],
+  driverDetail:null, vehicleDetail:null,
+  drawer:null, // {type:'driver'|'vehicle', mode:'add'|'edit'|'view', id}
+  modal:null,
+  driverSearch:'', vehicleSearch:'',
+  driverStatusFilter:null, vehicleAssignedFilter:null,
+  adminUsername:null, adminRole:null, adminUsersList:null,
+  toasts:[],
+  earningsDriverId:null, earningsLogs:null,
+  adminExpenseClaims:null, adminLeaveRequests:null,
+  liveLocations:null, drivingEvents:null, allAnnouncements:null,
+  reportEntity:'driver_earnings', reportFrom:null, reportTo:null, reportResult:null,
+  finesList:null, advancesList:null, payrollList:null, payrollDriverId:null, payrollPreview:null,
+  maintenanceList:null, maintenanceDueSoon:null,
+  incidentsList:null,
+  notificationsList:null,
+  auditLogsList:null,
+  analyticsData:null, analyticsFrom:null, analyticsTo:null,
+  vehicleProfit:{ expandedVehicleId:null, filterMode:'today', month:new Date().toISOString().slice(0,7), customFrom:'', customTo:'', cards:{}, detail:null, loading:false },
+  websiteBookings:null, websiteContacts:null,
+};
+
+function goToView(viewId, extraState){
+  Object.assign(state, extraState||{});
+  state.view = viewId;
+  state.railOpen = false;
+  render();
+  loadViewData(viewId);
+}
+
+async function loadViewData(viewId){
+  try{
+    if(viewId==='earnings'){
+      if(!state.earningsDriverId && state.drivers.length) state.earningsDriverId = state.drivers[0].id;
+      if(state.earningsDriverId){ state.earningsLogs = await api('/drivers/'+state.earningsDriverId+'/duty-logs'); render(); }
+    } else if(viewId==='expenses'){
+      state.adminExpenseClaims = await api('/expense-claims'); render();
+    } else if(viewId==='leave-requests'){
+      state.adminLeaveRequests = await api('/leave-requests'); render();
+    } else if(viewId==='live-map'){
+      state.liveLocations = await api('/locations/live'); render();
+    } else if(viewId==='driving-events'){
+      state.drivingEvents = await api('/driving-events'); render();
+    } else if(viewId==='warnings'){
+      state.allAnnouncements = await api('/announcements'); render();
+    } else if(viewId==='settings'){
+      if(state.adminRole==='boss'){ state.adminUsersList = await api('/admin-users'); render(); }
+    } else if(viewId==='fines'){
+      state.finesList = await api('/fines'); render();
+    } else if(viewId==='advances'){
+      state.advancesList = await api('/advances'); render();
+    } else if(viewId==='payroll'){
+      if(!state.payrollDriverId && state.drivers.length) state.payrollDriverId = state.drivers[0].id;
+      state.payrollList = await api('/payroll'); render();
+    } else if(viewId==='maintenance'){
+      state.maintenanceList = await api('/maintenance'); render();
+      state.maintenanceDueSoon = await api('/maintenance/due-soon'); render();
+    } else if(viewId==='incidents'){
+      state.incidentsList = await api('/incidents'); render();
+    } else if(viewId==='notifications'){
+      state.notificationsList = await api('/notifications'); render();
+    } else if(viewId==='audit-logs'){
+      state.auditLogsList = await api('/audit-logs'); render();
+    } else if(viewId==='analytics'){
+      const q = (state.analyticsFrom?('?from='+state.analyticsFrom+'&to='+(state.analyticsTo||'2999-12-31')):'');
+      state.analyticsData = await api('/analytics'+q); render();
+    } else if(viewId==='vehicle-profit'){
+      state.vehicleProfit.cards = {}; render();
+      await loadVehicleProfitCards();
+      if(state.vehicleProfit.expandedVehicleId) await loadVehicleProfitDetail();
+    } else if(viewId==='website-leads'){
+      state.websiteBookings = await api('/website/bookings');
+      state.websiteContacts = await api('/website/contact');
+      render();
+    }
+  }catch(ex){ toast(ex.message, true); }
+}
+
+function el(tag, attrs, children){
+  const node = document.createElement(tag);
+  attrs = attrs || {};
+  for(const k in attrs){
+    if(k === 'class') node.className = attrs[k];
+    else if(k === 'onclick' && typeof attrs[k] === 'function'){
+      // Guards every click handler in the app against double-submits: a
+      // second click while the first is still in flight (e.g. a slow network
+      // request) is ignored instead of firing a duplicate request.
+      const handler = attrs[k];
+      node.addEventListener('click', async (ev)=>{
+        if(node.dataset.busy === '1') return;
+        node.dataset.busy = '1';
+        const wasDisabled = node.disabled;
+        if('disabled' in node) node.disabled = true;
+        try{ await handler(ev); }
+        finally{ node.dataset.busy = ''; if('disabled' in node) node.disabled = wasDisabled; }
+      });
+    }
+    else if(k.startsWith('on') && typeof attrs[k] === 'function') node.addEventListener(k.slice(2), attrs[k]);
+    else if(k === 'html') node.innerHTML = attrs[k];
+    else if(k === 'value') node.value = attrs[k]==null?'':attrs[k]; // textareas ignore the value ATTRIBUTE; the property works for input/select/textarea alike
+    else if(attrs[k] !== null && attrs[k] !== undefined) node.setAttribute(k, attrs[k]);
+  }
+  (children||[]).flat().forEach(c=>{
+    if(c===null||c===undefined||c===false) return;
+    node.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(c) : c);
+  });
+  return node;
+}
+
+function toast(message, isErr){
+  const id = Date.now()+Math.random();
+  state.toasts.push({id, message, isErr});
+  renderToasts();
+  setTimeout(()=>{ state.toasts = state.toasts.filter(t=>t.id!==id); renderToasts(); }, 4200);
+}
+function renderToasts(){
+  let wrap = document.getElementById('toastWrap');
+  if(!wrap){ wrap = el('div',{id:'toastWrap', class:'toast-wrap'}); document.body.appendChild(wrap); }
+  wrap.innerHTML='';
+  state.toasts.forEach(t=> wrap.appendChild(el('div',{class:'toast'+(t.isErr?' err':'')},[t.message])));
+}
+
+async function api(path, opts){
+  opts = opts || {};
+  const headers = opts.body && !(opts.body instanceof FormData) ? {'Content-Type':'application/json'} : {};
+  const res = await fetch('/api'+path, {
+    method: opts.method || 'GET',
+    credentials:'include',
+    headers,
+    body: opts.body ? (opts.body instanceof FormData ? opts.body : JSON.stringify(opts.body)) : undefined,
+  });
+  let data = null;
+  const text = await res.text();
+  try{ data = text ? JSON.parse(text) : null; }catch(e){ data = null; }
+  if(!res.ok){
+    const err = new Error((data && data.error) || ('Request failed ('+res.status+')'));
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}
+
+function fmtDate(iso){
+  if(!iso) return '—';
+  const d = new Date(iso);
+  if(isNaN(d)) return iso;
+  return d.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
+}
+function fmtDateTime(iso){
+  if(!iso) return '—';
+  const d = new Date(iso);
+  if(isNaN(d)) return iso;
+  return d.toLocaleString('en-IN', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
+}
+function fmtTime(iso){ if(!iso) return '—'; const d = new Date(iso); if(isNaN(d)) return '—'; return d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}); }
+function daysUntil(dateStr){
+  if(!dateStr) return null;
+  const target = new Date(dateStr+'T00:00:00');
+  const now = new Date(); now.setHours(0,0,0,0);
+  return Math.round((target-now)/86400000);
+}
+function docExpiryPill(expiresOn){
+  if(!expiresOn) return el('span',{class:'pill'},['No expiry set']);
+  const d = daysUntil(expiresOn);
+  if(d<0) return el('span',{class:'pill bad'},['Expired']);
+  if(d<=7) return el('span',{class:'pill bad'},['Expires in '+d+'d']);
+  if(d<=30) return el('span',{class:'pill warn'},['Expiring soon']);
+  return el('span',{class:'pill good'},['Valid']);
+}
+const STATUS_PILL_CLASS = {
+  active:'good', suspended:'warn', maintenance:'warn', terminated:'bad', retired:'bad', pending:'warn', approved:'good', rejected:'bad',
+  checked_in:'good', on_lunch:'warn', checked_out:'bad', not_started:'warn',
+  draft:'warn', paid:'good', recovered:'good', waived:'warn',
+  open:'bad', under_investigation:'warn', resolved:'good', closed:'good',
+  new:'warn', contacted:'good',
+};
+const SHIFT_LABELS = {not_started:'Not checked in', checked_in:'On duty', on_lunch:'On lunch', checked_out:'Checked out'};
+function shiftPill(shift){
+  const status = (shift && shift.shift_status) || 'not_started';
+  return el('span',{class:'pill '+(STATUS_PILL_CLASS[status]||'warn')},[SHIFT_LABELS[status]||status]);
+}
+function statusPill(status){
+  const cls = STATUS_PILL_CLASS[status] || 'bad';
+  return el('span',{class:'pill '+cls},[status]);
+}
+
+const PASSWORD_POLICY_RE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8,}$/;
+const PASSWORD_POLICY_MSG = 'Password must be at least 8 characters and include an uppercase letter, a lowercase letter, and a number.';
+
+const DRIVER_DOC_LABELS ={license:'Driving Licence', aadhar:'Aadhar Card', pan:'PAN Card', police_verification:'Police Verification', badge:'Badge Photo', photo:'Photo', other:'Other'};
+
+const INDIAN_STATES = [
+  'Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana',
+  'Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur',
+  'Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana',
+  'Tripura','Uttar Pradesh','Uttarakhand','West Bengal',
+  'Andaman and Nicobar Islands','Chandigarh','Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi (NCT)','Jammu and Kashmir','Ladakh','Lakshadweep','Puducherry',
+];
+const VEHICLE_DOC_LABELS = {rc:'RC (Registration Certificate)', insurance:'Insurance', puc:'PUC Certificate', fitness:'Fitness Certificate', permit:'Permit', road_tax:'Road Tax Receipt', other:'Other'};
+
+// ---------------- data loading ----------------
+async function loadDrivers(){ state.drivers = await api('/drivers'); }
+async function loadVehicles(){ state.vehicles = await api('/vehicles'); }
+async function loadDriverDetail(id){ state.driverDetail = await api('/drivers/'+id); }
+async function loadVehicleDetail(id){ state.vehicleDetail = await api('/vehicles/'+id); }
+async function loadExpiringDocs(){ state.expiringDocs = await api('/documents/expiring'); }
+
+async function refreshAll(){
+  await Promise.all([loadDrivers(), loadVehicles(), loadExpiringDocs()]);
+}
+
+// ---------------- render root ----------------
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+  if(state.loading){ app.appendChild(el('div',{style:'padding:60px;text-align:center;color:var(--ink-soft)'},['Loading PFMS…'])); return; }
+  if(!state.loggedIn){ app.appendChild(renderLogin()); return; }
+  app.appendChild(renderShell());
+  renderToasts();
+}
+
+function renderLogin(){
+  const wrap = el('div',{class:'login-screen'});
+  const card = el('div',{class:'login-card'});
+  card.appendChild(el('div',{class:'mark'},['PFMS']));
+  card.appendChild(el('h1',{},['Pooja Fleet Management System']));
+  card.appendChild(el('div',{class:'sub'},['Pooja Taxi Services — admin login']));
+
+  const userField = el('input',{type:'text', autocomplete:'username', placeholder:'dheeraj'});
+  const passField = el('input',{type:'password', autocomplete:'current-password', placeholder:'••••••••'});
+  const errBox = el('div',{class:'error-text'},[state.loginError||'']);
+
+  const form = el('form',{},[
+    el('div',{class:'field'},[el('label',{},['Username']), userField]),
+    el('div',{class:'field'},[el('label',{},['Password']), passField]),
+    el('button',{type:'submit', class:'btn primary block'},['Log in']),
+    errBox,
+  ]);
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    try{
+      const loginRes = await api('/login', {method:'POST', body:{username:userField.value, password:passField.value}});
+      state.adminUsername = loginRes.username;
+      state.adminRole = loginRes.role;
+      state.loginError='';
+      state.loading=true; render();
+      await refreshAll();
+      state.loggedIn=true; state.loading=false;
+      render();
+    }catch(err){
+      state.loginError = err.message;
+      render();
+    }
+  });
+  card.appendChild(form);
+  wrap.appendChild(card);
+  return wrap;
+}
+
+const NAV = [
+  {group:null, items:[{id:'dashboard', label:'Dashboard'}]},
+  {group:'Fleet', items:[{id:'drivers', label:'Drivers'}, {id:'vehicles', label:'Vehicles'}, {id:'maintenance', label:'Maintenance'}]},
+  {group:'Live ops', items:[
+    {id:'live-map', label:'Live Map'},
+    {id:'driving-events', label:'Driving Events'},
+    {id:'incidents', label:'Incidents'},
+    {id:'warnings', label:'Warnings'},
+  ]},
+  {group:'Driver app', items:[
+    {id:'earnings', label:'Earnings'},
+    {id:'expenses', label:'Expense Claims'},
+    {id:'leave-requests', label:'Leave Requests'},
+  ]},
+  {group:'Finance', items:[
+    {id:'fines', label:'Fines & Recovery'},
+    {id:'advances', label:'Advances'},
+    {id:'payroll', label:'Payroll'},
+    {id:'vehicle-profit', label:'Expenses & Profit'},
+  ]},
+  {group:'Reporting', items:[{id:'reports', label:'Reports'}, {id:'analytics', label:'Analytics'}]},
+  {group:'Website', items:[{id:'website-leads', label:'Website Leads'}]},
+  {group:'Admin', items:[
+    {id:'notifications', label:'Notifications'},
+    {id:'audit-logs', label:'Audit Logs'},
+    {id:'settings', label:'Settings'},
+  ]},
+];
+
+function renderShell(){
+  const shell = el('div',{class:'shell'});
+  const rail = el('aside',{class:'rail'+(state.railOpen?' open':'')});
+  rail.appendChild(el('div',{class:'rail-brand'},[
+    el('div',{class:'mark'},['PFMS']),
+    el('div',{},[el('h1',{},['PFMS']), el('span',{},['Pooja Taxi Services'])]),
+  ]));
+  const nav = el('nav',{});
+  NAV.forEach(section=>{
+    const items = section.items.filter(item=> item.id!=='audit-logs' || state.adminRole==='boss');
+    if(!items.length) return;
+    if(section.group) nav.appendChild(el('div',{class:'group-label'},[section.group]));
+    items.forEach(item=>{
+      const disabled = !!item.phase;
+      const btn = el('button',{
+        class:'rail-link'+(state.view===item.id?' active':'')+(disabled?' disabled':''),
+        onclick: disabled? null : ()=>{ state.view=item.id; state.railOpen=false; render(); loadViewData(item.id); },
+      },[
+        el('span',{},[item.label]),
+        item.phase ? el('span',{class:'soon'},[item.phase]) : null,
+      ]);
+      nav.appendChild(btn);
+    });
+  });
+  rail.appendChild(nav);
+  rail.appendChild(el('div',{class:'rail-foot'},[
+    el('div',{style:'font-size:11.5px;color:var(--ink-soft);margin-bottom:8px;'},[
+      (state.adminUsername||'—')+' · '+(state.adminRole==='boss'?'Boss':'Manager'),
+    ]),
+    el('button',{class:'btn ghost', onclick: doLogout},['Log out']),
+  ]));
+  shell.appendChild(rail);
+  shell.appendChild(el('div',{class:'rail-scrim'+(state.railOpen?' open':''), onclick:()=>{state.railOpen=false; render();}}));
+  shell.appendChild(el('div',{class:'topbar-user'},[
+    el('span',{class:'who'},[(state.adminUsername||'—')+' · '+(state.adminRole==='boss'?'Boss':'Manager')]),
+    el('button',{class:'btn ghost', onclick: doLogout},['Log out']),
+  ]));
+
+  const main = el('main',{});
+  main.appendChild(el('button',{class:'menu-toggle', onclick:()=>{state.railOpen=!state.railOpen; render();}},['☰']));
+  if(state.view==='dashboard') main.appendChild(renderDashboard());
+  else if(state.view==='drivers') main.appendChild(renderDrivers());
+  else if(state.view==='vehicles') main.appendChild(renderVehicles());
+  else if(state.view==='settings') main.appendChild(renderSettings());
+  else if(state.view==='earnings') main.appendChild(renderEarningsAdmin());
+  else if(state.view==='expenses') main.appendChild(renderExpenseClaimsAdmin());
+  else if(state.view==='leave-requests') main.appendChild(renderLeaveRequestsAdmin());
+  else if(state.view==='live-map') main.appendChild(renderLiveMap());
+  else if(state.view==='driving-events') main.appendChild(renderDrivingEvents());
+  else if(state.view==='warnings') main.appendChild(renderWarnings());
+  else if(state.view==='reports') main.appendChild(renderReports());
+  else if(state.view==='fines') main.appendChild(renderFines());
+  else if(state.view==='advances') main.appendChild(renderAdvances());
+  else if(state.view==='payroll') main.appendChild(renderPayroll());
+  else if(state.view==='maintenance') main.appendChild(renderMaintenance());
+  else if(state.view==='incidents') main.appendChild(renderIncidents());
+  else if(state.view==='notifications') main.appendChild(renderNotifications());
+  else if(state.view==='audit-logs') main.appendChild(renderAuditLogs());
+  else if(state.view==='analytics') main.appendChild(renderAnalytics());
+  else if(state.view==='vehicle-profit') main.appendChild(renderVehicleProfit());
+  else if(state.view==='website-leads') main.appendChild(renderWebsiteLeads());
+  else main.appendChild(renderComingSoon());
+  shell.appendChild(main);
+
+  if(state.drawer) shell.appendChild(renderDrawer());
+  if(state.modal) shell.appendChild(renderModal());
+  return shell;
+}
+
+async function doLogout(){
+  try{ await api('/logout', {method:'POST'}); }catch(e){}
+  state.loggedIn=false; state.driverDetail=null; state.vehicleDetail=null; state.drawer=null;
+  render();
+}
+
+function renderComingSoon(){
+  const item = NAV.flatMap(s=>s.items).find(i=>i.id===state.view);
+  return el('div',{class:'coming-soon'},[
+    el('h2',{},[item?item.label:'Coming soon']),
+    el('p',{},['Scoped in the '+(item?item.phase:'roadmap')+' — see the PFMS design blueprint for what this screen will do.']),
+  ]);
+}
+
+// ---------------- settings ----------------
+function renderSettings(){
+  const wrap = el('div',{});
+  wrap.appendChild(el('div',{class:'page-head'},[
+    el('div',{},[el('h2',{},['Settings']), el('div',{class:'sub'},['Admin account'])]),
+  ]));
+
+  const card = el('div',{class:'card', style:'padding:22px 24px; max-width:420px;'});
+  card.appendChild(el('div',{style:'font-weight:700;font-size:15px;margin-bottom:2px;'},['Change password']));
+  card.appendChild(el('div',{style:'font-size:12.5px;color:var(--ink-soft);margin-bottom:18px;'},['Logged in as '+(state.adminUsername||'—')]));
+
+  const curInput = el('input',{type:'password', autocomplete:'current-password'});
+  const newInput = el('input',{type:'password', autocomplete:'new-password'});
+  const confirmInput = el('input',{type:'password', autocomplete:'new-password'});
+  const err = el('div',{class:'error-text'},['']);
+
+  const form = el('form',{},[
+    el('div',{class:'field'},[el('label',{},['Current password']), curInput]),
+    el('div',{class:'field'},[el('label',{},['New password']), newInput]),
+    el('div',{class:'field'},[el('label',{},['Confirm new password']), confirmInput]),
+    err,
+    el('button',{type:'submit', class:'btn primary'},['Update password']),
+  ]);
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    err.textContent = '';
+    if(!PASSWORD_POLICY_RE.test(newInput.value)){ err.textContent = PASSWORD_POLICY_MSG; return; }
+    if(newInput.value !== confirmInput.value){ err.textContent = 'New password and confirmation do not match.'; return; }
+    try{
+      await api('/settings/change-password', {method:'POST', body:{currentPassword:curInput.value, newPassword:newInput.value}});
+      toast('Password updated.');
+      curInput.value=''; newInput.value=''; confirmInput.value='';
+      render();
+    }catch(ex){ err.textContent = ex.message; }
+  });
+  card.appendChild(form);
+  wrap.appendChild(card);
+
+  if(state.adminRole==='boss'){
+    wrap.appendChild(el('div',{style:'margin-top:22px;'},[renderAdminUsersCard()]));
+  }
+  return wrap;
+}
+
+function renderAdminUsersCard(){
+  const card = el('div',{class:'card', style:'padding:22px 24px; max-width:640px;'});
+  card.appendChild(el('div',{style:'font-weight:700;font-size:15px;margin-bottom:2px;'},['Admin users']));
+  card.appendChild(el('div',{style:'font-size:12.5px;color:var(--ink-soft);margin-bottom:18px;'},[
+    "As Boss, you can add Manager accounts and reset their passwords. Once you commit a duty log, expense claim, or fuel entry, only you can still edit or un-commit it.",
+  ]));
+
+  const users = state.adminUsersList || [];
+  const table = el('table',{},[el('thead',{},[el('tr',{},[
+    el('th',{},['Username']), el('th',{},['Role']), el('th',{},['Status']), el('th',{},['']),
+  ])])]);
+  const tbody = el('tbody',{});
+  if(!users.length) tbody.appendChild(el('tr',{class:'empty-row'},[el('td',{colspan:4},[state.adminUsersList===null?'Loading…':'No admin users yet.'])]));
+  users.forEach(u=>{
+    tbody.appendChild(el('tr',{},[
+      el('td',{},[u.username]),
+      el('td',{},[u.role==='boss'?'Boss':'Manager']),
+      el('td',{},[u.active?el('span',{class:'pill good'},['Active']):el('span',{class:'pill bad'},['Deactivated'])]),
+      el('td',{},[
+        el('div',{style:'display:flex;gap:6px;flex-wrap:wrap;'},[
+          el('button',{class:'icon-btn', onclick:()=>promptResetAdminUserPassword(u)},['Reset password']),
+          u.username===state.adminUsername ? null : el('button',{class:'icon-btn'+(u.active?' danger':''), onclick:()=>toggleAdminUserActive(u)},[u.active?'Deactivate':'Reactivate']),
+        ]),
+      ]),
+    ]));
+  });
+  table.appendChild(tbody);
+  card.appendChild(table);
+
+  const addWrap = el('div',{style:'margin-top:16px;padding-top:16px;border-top:1px solid var(--line);'});
+  addWrap.appendChild(el('div',{style:'font-weight:700;margin-bottom:10px;'},['Add an admin user']));
+  const userInput = el('input',{type:'text', placeholder:'Username', autocomplete:'off'});
+  const passInput = el('input',{type:'password', placeholder:'Min 8 chars, upper+lower+number', autocomplete:'new-password'});
+  const roleSelect = el('select',{},[el('option',{value:'manager'},['Manager']), el('option',{value:'boss'},['Boss'])]);
+  const addErr = el('div',{class:'error-text'},['']);
+  addWrap.appendChild(el('div',{class:'form-grid'},[
+    el('div',{class:'field'},[el('label',{},['Username']), userInput]),
+    el('div',{class:'field'},[el('label',{},['Password']), passInput]),
+    el('div',{class:'field'},[el('label',{},['Role']), roleSelect]),
+  ]));
+  addWrap.appendChild(addErr);
+  addWrap.appendChild(el('button',{class:'btn primary', onclick: async ()=>{
+    addErr.textContent = '';
+    if(!PASSWORD_POLICY_RE.test(passInput.value)){ addErr.textContent = PASSWORD_POLICY_MSG; return; }
+    try{
+      await api('/admin-users', {method:'POST', body:{username:userInput.value.trim(), password:passInput.value, role:roleSelect.value}});
+      toast('Admin user created.');
+      userInput.value=''; passInput.value='';
+      state.adminUsersList = await api('/admin-users');
+      render();
+    }catch(ex){ addErr.textContent = ex.message; }
+  }},['Add user']));
+  card.appendChild(addWrap);
+  return card;
+}
+
+async function toggleAdminUserActive(u){
+  try{
+    await api('/admin-users/'+u.id, {method:'PUT', body:{active: !u.active}});
+    toast(u.active?'User deactivated.':'User reactivated.');
+    state.adminUsersList = await api('/admin-users');
+    render();
+  }catch(ex){ toast(ex.message, true); }
+}
+
+async function promptResetAdminUserPassword(u){
+  const newPassword = prompt('New password for "'+u.username+'" (min 8 chars, upper+lower+number):');
+  if(newPassword==null) return;
+  if(!PASSWORD_POLICY_RE.test(newPassword)){ toast(PASSWORD_POLICY_MSG, true); return; }
+  try{
+    await api('/admin-users/'+u.id+'/reset-password', {method:'POST', body:{newPassword}});
+    toast('Password reset for '+u.username+'.');
+  }catch(ex){ toast(ex.message, true); }
+}
+
+// ---------------- earnings (admin) ----------------
+function renderEarningsAdmin(){
+  const wrap = el('div',{});
+  wrap.appendChild(el('div',{class:'page-head'},[
+    el('div',{},[el('h2',{},['Earnings']), el('div',{class:'sub'},["Boss and Manager can always enter or fix a driver's full day — readings, fuel, trips, and earning — in case the driver forgets to log in via their own app."])]),
+  ]));
+  if(!state.drivers.length){
+    wrap.appendChild(el('div',{class:'card'},[el('div',{style:'padding:24px;text-align:center;color:var(--ink-soft);'},['Add a driver first.'])]));
+    return wrap;
+  }
+  if(!state.earningsDriverId) state.earningsDriverId = state.drivers[0].id;
+  if(!state.earningsFormDate) state.earningsFormDate = new Date().toISOString().slice(0,10);
+  const select = el('select',{style:'max-width:240px;'});
+  state.drivers.forEach(d=> select.appendChild(el('option',{value:d.id, selected:String(state.earningsDriverId)===String(d.id)?'selected':null},[d.name])));
+  select.addEventListener('change', async ()=>{ state.earningsDriverId = Number(select.value); state.earningsLogs = null; render(); state.earningsLogs = await api('/drivers/'+state.earningsDriverId+'/duty-logs'); render(); });
+  wrap.appendChild(el('div',{class:'toolbar', style:'margin-bottom:18px;'},[el('span',{style:'font-size:13px;color:var(--ink-soft);font-weight:600;'},['Driver:']), select]));
+
+  const logs = state.earningsLogs || [];
+  const existingLog = logs.find(l=>l.log_date===state.earningsFormDate) || null;
+
+  const entryCard = el('div',{class:'card', style:'padding:18px; margin-bottom:18px; max-width:640px;'});
+  entryCard.appendChild(el('div',{style:'font-weight:700;margin-bottom:4px;'},["Enter / edit a day's details"]));
+  entryCard.appendChild(el('div',{style:'font-size:12px;color:var(--ink-soft);margin-bottom:12px;'},[existingLog ? 'Editing the existing entry for this date — any blank field here is left unchanged.' : 'No entry logged for this date yet — saving will create one.']));
+
+  const dateInput = el('input',{type:'date', value: state.earningsFormDate});
+  dateInput.addEventListener('change', ()=>{ state.earningsFormDate = dateInput.value; render(); });
+
+  const vehicleSelect = el('select',{});
+  vehicleSelect.appendChild(el('option',{value:''},['— select vehicle —']));
+  state.vehicles.forEach(v=> vehicleSelect.appendChild(el('option',{value:v.id, selected:existingLog && String(existingLog.vehicle_id)===String(v.id)?'selected':null},[v.reg_no])));
+
+  const earningInput = el('input',{type:'number', step:'1', placeholder:'e.g. 2200', value: existingLog && existingLog.total_earning!=null ? existingLog.total_earning : ''});
+  const tripsInput = el('input',{type:'number', step:'1', placeholder:'e.g. 12', value: existingLog && existingLog.trip_count!=null ? existingLog.trip_count : ''});
+  const startInput = el('input',{type:'number', step:'1', placeholder:'e.g. 37995', value: existingLog && existingLog.start_reading!=null ? existingLog.start_reading : ''});
+  const endInput = el('input',{type:'number', step:'1', placeholder:'e.g. 38317', value: existingLog && existingLog.end_reading!=null ? existingLog.end_reading : ''});
+
+  entryCard.appendChild(el('div',{class:'form-grid'},[
+    el('div',{class:'field'},[el('label',{},['Date']), dateInput]),
+    el('div',{class:'field'},[el('label',{},['Vehicle']), vehicleSelect]),
+    el('div',{class:'field'},[el('label',{},['Start reading (km)']), startInput]),
+    el('div',{class:'field'},[el('label',{},['End reading (km)']), endInput]),
+    el('div',{class:'field'},[el('label',{},['Total earning (₹)']), earningInput]),
+    el('div',{class:'field'},[el('label',{},['Trips']), tripsInput]),
+  ]));
+  const err = el('div',{class:'error-text'},['']);
+  entryCard.appendChild(err);
+  entryCard.appendChild(el('button',{class:'btn primary', onclick: async ()=>{
+    try{
+      await api('/drivers/'+state.earningsDriverId+'/duty-logs/'+state.earningsFormDate+'/earnings', {method:'PUT', body:{
+        total_earning: earningInput.value, trip_count: tripsInput.value,
+        start_reading: startInput.value, end_reading: endInput.value,
+        vehicle_id: vehicleSelect.value,
+      }});
+      toast('Saved — the driver will see it next time their app refreshes.');
+      state.earningsLogs = await api('/drivers/'+state.earningsDriverId+'/duty-logs');
+      render();
+    }catch(ex){ err.textContent = ex.message; }
+  }},['Save']));
+
+  entryCard.appendChild(el('div',{style:'font-weight:700;margin-top:20px;margin-bottom:8px;border-top:1px solid var(--line);padding-top:14px;'},['Fuel entries for this date']));
+  const fuelList = el('div',{style:'margin-bottom:10px;'});
+  const existingFuel = (existingLog && existingLog.fuel_entries) || [];
+  if(!existingFuel.length) fuelList.appendChild(el('div',{style:'font-size:12.5px;color:var(--ink-soft);'},['None logged yet.']));
+  existingFuel.forEach(f=>{
+    fuelList.appendChild(el('div',{style:'display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px;border-bottom:1px solid var(--line);'},[
+      el('span',{},[f.fuel_type.charAt(0).toUpperCase()+f.fuel_type.slice(1)+' — ₹'+f.amount]),
+      f.committed_at
+        ? el('span',{class:'pill warn'},['🔒 Locked'])
+        : el('button',{class:'icon-btn danger', onclick: async ()=>{
+            try{ await api('/duty-log-fuel/'+f.id, {method:'DELETE'}); state.earningsLogs = await api('/drivers/'+state.earningsDriverId+'/duty-logs'); render(); }
+            catch(ex){ toast(ex.message, true); }
+          }},['Remove']),
+    ]));
+  });
+  entryCard.appendChild(fuelList);
+
+  const fuelTypeSelect = el('select',{});
+  [['petrol','Petrol'],['cng','CNG'],['diesel','Diesel'],['other','Other']].forEach(([v,l])=> fuelTypeSelect.appendChild(el('option',{value:v},[l])));
+  const fuelAmountInput = el('input',{type:'number', step:'0.01', placeholder:'Amount (₹)'});
+  entryCard.appendChild(el('div',{class:'form-grid'},[
+    el('div',{class:'field'},[el('label',{},['Fuel type']), fuelTypeSelect]),
+    el('div',{class:'field'},[el('label',{},['Amount (₹)']), fuelAmountInput]),
+  ]));
+  const fuelErr = el('div',{class:'error-text'},['']);
+  entryCard.appendChild(fuelErr);
+  entryCard.appendChild(el('button',{class:'btn ghost', onclick: async ()=>{
+    try{
+      await api('/drivers/'+state.earningsDriverId+'/duty-logs/'+state.earningsFormDate+'/fuel', {method:'POST', body:{fuel_type:fuelTypeSelect.value, amount:fuelAmountInput.value}});
+      state.earningsLogs = await api('/drivers/'+state.earningsDriverId+'/duty-logs');
+      render();
+    }catch(ex){ fuelErr.textContent = ex.message; }
+  }},['Add fuel entry']));
+
+  wrap.appendChild(entryCard);
+
+  const pendingReopens = logs.filter(l=>l.reopen_status==='pending');
+  if(pendingReopens.length){
+    const reopenCard = el('div',{class:'card', style:'padding:16px 18px; margin-bottom:18px; border-color:var(--warn);'});
+    reopenCard.appendChild(el('div',{style:'font-weight:700;margin-bottom:8px;'},['Requests to check in again']));
+    pendingReopens.forEach(l=>{
+      reopenCard.appendChild(el('div',{style:'display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);'},[
+        el('span',{},[fmtDate(l.log_date)+' — checked out at '+(l.check_out_at?fmtTime(l.check_out_at):'—')]),
+        el('div',{style:'display:flex;gap:6px;'},[
+          el('button',{class:'icon-btn', onclick: async ()=>{
+            try{ await api('/duty-logs/'+l.id+'/reopen-decision', {method:'PUT', body:{approve:true}}); toast('Approved — driver can check in again.'); state.earningsLogs = await api('/drivers/'+state.earningsDriverId+'/duty-logs'); render(); }
+            catch(ex){ toast(ex.message, true); }
+          }},['Approve']),
+          el('button',{class:'icon-btn danger', onclick: async ()=>{
+            try{ await api('/duty-logs/'+l.id+'/reopen-decision', {method:'PUT', body:{approve:false}}); toast('Request rejected.'); state.earningsLogs = await api('/drivers/'+state.earningsDriverId+'/duty-logs'); render(); }
+            catch(ex){ toast(ex.message, true); }
+          }},['Reject']),
+        ]),
+      ]));
+    });
+    wrap.appendChild(reopenCard);
+  }
+
+  const table = el('table',{},[el('thead',{},[el('tr',{},[
+    el('th',{},['Date']), el('th',{},['Shift']), el('th',{},['Run']), el('th',{},['Fuel']), el('th',{},['Trips']), el('th',{},['Total earning']), el('th',{},['Driver commission']), el('th',{},['']),
+  ])])]);
+  const tbody = el('tbody',{});
+  if(!logs.length) tbody.appendChild(el('tr',{class:'empty-row'},[el('td',{colspan:8},[state.earningsLogs===null?'Loading…':'No logs yet for this driver.'])]));
+  logs.forEach(l=>{
+    const fuelTotal = (l.fuel_entries||[]).reduce((s,f)=>s+(f.amount||0),0);
+    const shiftBits = [];
+    if(l.check_in_at) shiftBits.push('In '+fmtTime(l.check_in_at));
+    if(l.lunch_start_at) shiftBits.push('Lunch '+fmtTime(l.lunch_start_at)+(l.lunch_end_at?'–'+fmtTime(l.lunch_end_at):'…'));
+    if(l.check_out_at) shiftBits.push('Out '+fmtTime(l.check_out_at));
+    tbody.appendChild(el('tr',{},[
+      el('td',{},[fmtDate(l.log_date)]),
+      el('td',{},[shiftBits.length ? el('span',{style:'font-size:11.5px;color:var(--ink-soft);'},[shiftBits.join(' · ')]) : shiftPill(l)]),
+      el('td',{},[l.total_run!=null?l.total_run+' km':'—']),
+      el('td',{},[fuelTotal?('₹'+fuelTotal):'—']),
+      el('td',{},[l.trip_count!=null?String(l.trip_count):'—']),
+      el('td',{},[l.total_earning!=null?('₹'+l.total_earning):'—']),
+      el('td',{},[l.commission_amount!=null?('₹'+l.commission_amount):'—']),
+      el('td',{},[commitCell('duty-logs', l, ()=>{ loadViewData('earnings'); })]),
+    ]));
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(el('div',{class:'card'},[table]));
+  return wrap;
+}
+
+// Shared lock/commit cell used on Earnings and Expense Claims. Everyone sees
+// a "Locked" badge once committed; only the Boss gets a button to toggle it.
+function commitCell(entityPath, row, onChanged){
+  if(!row.committed_at){
+    if(state.adminRole!=='boss') return el('span',{style:'font-size:11.5px;color:var(--ink-soft);'},['—']);
+    return el('button',{class:'icon-btn', onclick: async ()=>{
+      try{ await api('/'+entityPath+'/'+row.id+'/commit', {method:'POST'}); toast('Committed — locked for the Manager.'); onChanged&&onChanged(); }
+      catch(ex){ toast(ex.message, true); }
+    }},['Commit']);
+  }
+  if(state.adminRole!=='boss'){
+    return el('span',{class:'pill warn', title:'Committed by the Boss — locked'},['🔒 Locked']);
+  }
+  return el('div',{style:'display:flex;align-items:center;gap:6px;'},[
+    el('span',{class:'pill warn'},['🔒 Locked']),
+    el('button',{class:'icon-btn', onclick: async ()=>{
+      try{ await api('/'+entityPath+'/'+row.id+'/uncommit', {method:'POST'}); toast('Un-committed.'); onChanged&&onChanged(); }
+      catch(ex){ toast(ex.message, true); }
+    }},['Uncommit']),
+  ]);
+}
+
+// ---------------- expense claims (admin) ----------------
+function renderExpenseClaimsAdmin(){
+  const wrap = el('div',{});
+  const claims = state.adminExpenseClaims || [];
+  wrap.appendChild(el('div',{class:'page-head'},[
+    el('div',{},[el('h2',{},['Expense Claims']), el('div',{class:'sub'},[claims.length+' submitted'])]),
+  ]));
+  const table = el('table',{},[el('thead',{},[el('tr',{},[
+    el('th',{},['Driver']), el('th',{},['Category']), el('th',{},['Amount']), el('th',{},['Notes']), el('th',{},['Status']), el('th',{},['']), el('th',{},['']),
+  ])])]);
+  const tbody = el('tbody',{});
+  if(!claims.length) tbody.appendChild(el('tr',{class:'empty-row'},[el('td',{colspan:7},[state.adminExpenseClaims===null?'Loading…':'No claims submitted yet.'])]));
+  claims.forEach(c=>{
+    const locked = !!c.committed_at;
+    const canDecide = c.status==='pending' && (!locked || state.adminRole==='boss');
+    tbody.appendChild(el('tr',{},[
+      el('td',{},[c.driver_name]),
+      el('td',{},[c.category[0].toUpperCase()+c.category.slice(1)]),
+      el('td',{},[c.amount?('₹'+c.amount):'—']),
+      el('td',{},[c.notes||'—', c.photo_stored_name?el('div',{},[el('a',{href:'/api/expense-claims/'+c.id+'/photo', target:'_blank', style:'font-size:11.5px;color:var(--accent);'},['View photo'])]):null]),
+      el('td',{},[statusPill(c.status)]),
+      el('td',{},[
+        canDecide
+          ? el('div',{style:'display:flex;gap:6px;'},[
+              el('button',{class:'icon-btn', onclick:()=>decideExpenseClaim(c.id,'approved')},['Approve']),
+              el('button',{class:'icon-btn danger', onclick:()=>decideExpenseClaim(c.id,'rejected')},['Reject']),
+            ])
+          : el('span',{style:'font-size:12px;color:var(--ink-soft);'},[c.admin_note||'']),
+      ]),
+      el('td',{},[commitCell('expense-claims', c, async ()=>{ state.adminExpenseClaims = await api('/expense-claims'); render(); })]),
+    ]));
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(el('div',{class:'card'},[table]));
+  return wrap;
+}
+async function decideExpenseClaim(id, status){
+  try{
+    await api('/expense-claims/'+id+'/status', {method:'PUT', body:{status}});
+    toast('Claim '+status+'.');
+    state.adminExpenseClaims = await api('/expense-claims');
+    render();
+  }catch(ex){ toast(ex.message, true); }
+}
+
+// ---------------- leave requests (admin) ----------------
+function renderLeaveRequestsAdmin(){
+  const wrap = el('div',{});
+  const reqs = state.adminLeaveRequests || [];
+  wrap.appendChild(el('div',{class:'page-head'},[
+    el('div',{},[el('h2',{},['Leave Requests']), el('div',{class:'sub'},[reqs.length+' submitted'])]),
+  ]));
+  const table = el('table',{},[el('thead',{},[el('tr',{},[
+    el('th',{},['Driver']), el('th',{},['From']), el('th',{},['To']), el('th',{},['Reason']), el('th',{},['Status']), el('th',{},['']),
+  ])])]);
+  const tbody = el('tbody',{});
+  if(!reqs.length) tbody.appendChild(el('tr',{class:'empty-row'},[el('td',{colspan:6},[state.adminLeaveRequests===null?'Loading…':'No leave requests yet.'])]));
+  reqs.forEach(r=>{
+    tbody.appendChild(el('tr',{},[
+      el('td',{},[r.driver_name]),
+      el('td',{},[fmtDate(r.start_date)]),
+      el('td',{},[fmtDate(r.end_date)]),
+      el('td',{},[r.reason||'—']),
+      el('td',{},[statusPill(r.status)]),
+      el('td',{},[
+        r.status==='pending'
+          ? el('div',{style:'display:flex;gap:6px;'},[
+              el('button',{class:'icon-btn', onclick:()=>decideLeaveRequest(r.id,'approved')},['Approve']),
+              el('button',{class:'icon-btn danger', onclick:()=>decideLeaveRequest(r.id,'rejected')},['Reject']),
+            ])
+          : el('span',{style:'font-size:12px;color:var(--ink-soft);'},[r.admin_note||'']),
+      ]),
+    ]));
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(el('div',{class:'card'},[table]));
+  return wrap;
+}
+async function decideLeaveRequest(id, status){
+  try{
+    await api('/leave-requests/'+id+'/status', {method:'PUT', body:{status}});
+    toast('Leave request '+status+'.');
+    state.adminLeaveRequests = await api('/leave-requests');
+    render();
+  }catch(ex){ toast(ex.message, true); }
+}
+
+// ---------------- live map ----------------
+let liveMapInstance = null;
+function renderLiveMap(){
+  const wrap = el('div',{});
+  const locs = state.liveLocations || [];
+  wrap.appendChild(el('div',{class:'page-head'},[
+    el('div',{},[el('h2',{},['Live Map']), el('div',{class:'sub'},[locs.length+' on duty right now'])]),
+  ]));
+  wrap.appendChild(el('div',{id:'liveMapDiv', style:'height:440px;border-radius:14px;border:1px solid var(--line);box-shadow:var(--shadow);'}));
+  if(!locs.length){
+    wrap.appendChild(el('div',{class:'card', style:'margin-top:14px;padding:22px;text-align:center;color:var(--ink-soft);'},['No drivers are currently checked in with a location on file.']));
+  }
+  setTimeout(()=>{
+    if(!window.L) return;
+    const container = document.getElementById('liveMapDiv');
+    if(!container) return;
+    if(liveMapInstance){ liveMapInstance.remove(); liveMapInstance = null; }
+    const center = locs.length ? [locs[0].lat, locs[0].lng] : [21.1458, 79.0882];
+    liveMapInstance = L.map('liveMapDiv').setView(center, locs.length ? 12 : 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(liveMapInstance);
+    locs.forEach(loc=>{
+      const color = loc.shift_status==='on_lunch' ? '#9C7014' : '#4F6E3C';
+      L.circleMarker([loc.lat, loc.lng], { radius: 9, color, fillColor: color, fillOpacity: 0.85, weight: 2 })
+        .bindPopup('<b>'+loc.driver_name+'</b><br>'+(loc.vehicle_reg_no||'No vehicle assigned')+'<br>'+(loc.shift_status==='on_lunch'?'On lunch':'On duty')+'<br>Last seen '+fmtTime(loc.recorded_at))
+        .addTo(liveMapInstance);
+    });
+  }, 0);
+  return wrap;
+}
+
+// ---------------- driving events ----------------
+const DRIVING_EVENT_LABELS = {rapid_acceleration:'Rapid acceleration', harsh_braking:'Harsh braking', possible_collision:'Possible collision', speeding:'Speeding'};
+const EVENT_WARNING_MESSAGES = {
+  rapid_acceleration: 'Please ease off the accelerator — rapid acceleration was detected on your last trip.',
+  harsh_braking: 'Please brake earlier and more gently — harsh braking was detected on your last trip.',
+  possible_collision: 'A possible collision was detected on your last trip. Please confirm you and the vehicle are okay, and contact the office.',
+  speeding: 'Please slow down — speeding was detected on your last trip.',
+};
+async function quickWarnFromEvent(driverId, driverName, eventType){
+  try{
+    await api('/drivers/'+driverId+'/announcements', {method:'POST', body:{message: EVENT_WARNING_MESSAGES[eventType] || 'Please drive safely.'}});
+    toast('Warning sent to '+driverName+'.');
+  }catch(ex){ toast(ex.message, true); }
+}
+function renderDrivingEvents(){
+  const wrap = el('div',{});
+  const events = state.drivingEvents || [];
+  wrap.appendChild(el('div',{class:'page-head'},[
+    el('div',{},[el('h2',{},['Driving Events']), el('div',{class:'sub'},[events.length+' recorded'])]),
+  ]));
+  const table = el('table',{},[el('thead',{},[el('tr',{},[
+    el('th',{},['When']), el('th',{},['Driver']), el('th',{},['Vehicle']), el('th',{},['Event']), el('th',{},['G-force']), el('th',{},['']),
+  ])])]);
+  const tbody = el('tbody',{});
+  if(!events.length){
+    tbody.appendChild(el('tr',{class:'empty-row'},[el('td',{colspan:6},[state.drivingEvents===null?'Loading…':'No driving events yet — these fill in automatically once a driver is on duty with motion detection running.'])]));
+  }
+  events.forEach(ev=>{
+    const severe = ev.event_type==='possible_collision';
+    tbody.appendChild(el('tr',{},[
+      el('td',{},[fmtDateTime(ev.created_at)]),
+      el('td',{},[ev.driver_name]),
+      el('td',{},[ev.vehicle_reg_no||'—']),
+      el('td',{},[el('span',{class:'pill '+(severe?'bad':'warn')},[DRIVING_EVENT_LABELS[ev.event_type]||ev.event_type])]),
+      el('td',{},[ev.g_force!=null?Number(ev.g_force).toFixed(2)+'g':'—']),
+      el('td',{},[el('button',{class:'icon-btn', onclick:()=>quickWarnFromEvent(ev.driver_id, ev.driver_name, ev.event_type)},['Warn driver'])]),
+    ]));
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(el('div',{class:'card'},[table]));
+  return wrap;
+}
+
+// ---------------- warnings ----------------
+function renderWarnings(){
+  const wrap = el('div',{});
+  wrap.appendChild(el('div',{class:'page-head'},[
+    el('div',{},[el('h2',{},['Warnings']), el('div',{class:'sub'},["Send a nudge to a driver, or review what's been sent."])]),
+  ]));
+
+  const card = el('div',{class:'card', style:'padding:18px; max-width:540px; margin-bottom:18px;'});
+  card.appendChild(el('div',{style:'font-weight:700;margin-bottom:12px;'},['Send a quick nudge']));
+  const driverSelect = el('select',{});
+  state.drivers.forEach(d=> driverSelect.appendChild(el('option',{value:d.id},[d.name])));
+  const presets = [
+    ['Slow down','Please slow down and drive within the speed limit.'],
+    ['Take a break','You have been on duty a while — consider taking a short break.'],
+    ['Charge your phone','Your phone battery may be low — please charge it so tracking stays on.'],
+    ['Drive safely','Please drive carefully and follow all traffic rules.'],
+    ['Custom message',''],
+  ];
+  const presetSelect = el('select',{});
+  presets.forEach(([label,msg])=> presetSelect.appendChild(el('option',{value:msg},[label])));
+  card.appendChild(el('div',{class:'form-grid'},[
+    el('div',{class:'field'},[el('label',{},['Driver']), driverSelect]),
+    el('div',{class:'field'},[el('label',{},['Preset']), presetSelect]),
+  ]));
+  const customMsg = el('textarea',{placeholder:'Message', style:'margin-top:2px;'});
+  customMsg.value = presets[0][1];
+  presetSelect.addEventListener('change', ()=>{ customMsg.value = presetSelect.value; });
+  card.appendChild(el('div',{class:'field'},[el('label',{},['Message']), customMsg]));
+  const err = el('div',{class:'error-text'},['']);
+  card.appendChild(err);
+  card.appendChild(el('button',{class:'btn primary', onclick: async ()=>{
+    if(!customMsg.value.trim()){ err.textContent='Message cannot be empty.'; return; }
+    if(!state.drivers.length){ err.textContent='Add a driver first.'; return; }
+    try{
+      await api('/drivers/'+driverSelect.value+'/announcements', {method:'POST', body:{message:customMsg.value.trim()}});
+      toast('Warning sent.');
+      state.allAnnouncements = await api('/announcements');
+      render();
+    }catch(ex){ err.textContent = ex.message; }
+  }},['Send']));
+  wrap.appendChild(card);
+
+  const history = state.allAnnouncements || [];
+  const table = el('table',{},[el('thead',{},[el('tr',{},[
+    el('th',{},['Sent']), el('th',{},['Driver']), el('th',{},['Message']), el('th',{},['Seen']),
+  ])])]);
+  const tbody = el('tbody',{});
+  if(!history.length) tbody.appendChild(el('tr',{class:'empty-row'},[el('td',{colspan:4},[state.allAnnouncements===null?'Loading…':'No messages sent yet.'])]));
+  history.forEach(a=>{
+    tbody.appendChild(el('tr',{},[
+      el('td',{},[fmtDateTime(a.created_at)]),
+      el('td',{},[a.driver_name]),
+      el('td',{},[a.message]),
+      el('td',{},[a.acknowledged_at ? el('span',{class:'pill good'},['Seen']) : el('span',{class:'pill warn'},['Unseen'])]),
+    ]));
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(el('div',{class:'card'},[table]));
+  return wrap;
+}
+
+// ---------------- reports ----------------
+const REPORT_OPTIONS = [
+  ['driver_earnings','Driver earnings & commission'],
+  ['vehicle_costs','Vehicle running cost'],
+  ['driving_events_summary','Driving events summary'],
+  ['duty_logs','Duty logs (raw)'],
+  ['expense_claims','Expense claims (raw)'],
+  ['leave_requests','Leave requests (raw)'],
+  ['fines','Fines & damage recovery'],
+  ['advances','Driver advances'],
+  ['payroll','Payroll runs'],
+  ['maintenance','Maintenance records'],
+  ['incidents','Accidents & incidents'],
+];
+function renderReports(){
+  const wrap = el('div',{});
+  wrap.appendChild(el('div',{class:'page-head'},[
+    el('div',{},[el('h2',{},['Reports']), el('div',{class:'sub'},['Pick a report, set a date range, export to CSV.'])]),
+  ]));
+
+  const card = el('div',{class:'card', style:'padding:18px; max-width:640px; margin-bottom:18px;'});
+  const entitySelect = el('select',{});
+  REPORT_OPTIONS.forEach(([v,l])=> entitySelect.appendChild(el('option',{value:v, selected:state.reportEntity===v?'selected':null},[l])));
+  const today = new Date().toISOString().slice(0,10);
+  const monthAgo = new Date(Date.now()-30*86400000).toISOString().slice(0,10);
+  const fromInput = el('input',{type:'date', value: state.reportFrom || monthAgo});
+  const toInput = el('input',{type:'date', value: state.reportTo || today});
+  card.appendChild(el('div',{class:'form-grid'},[
+    el('div',{class:'field full'},[el('label',{},['Report']), entitySelect]),
+    el('div',{class:'field'},[el('label',{},['From']), fromInput]),
+    el('div',{class:'field'},[el('label',{},['To']), toInput]),
+  ]));
+  const err = el('div',{class:'error-text'},['']);
+  card.appendChild(err);
+  card.appendChild(el('div',{style:'display:flex;gap:8px;margin-top:8px;'},[
+    el('button',{class:'btn primary', onclick: async ()=>{
+      state.reportEntity = entitySelect.value; state.reportFrom = fromInput.value; state.reportTo = toInput.value;
+      try{
+        state.reportResult = await api('/reports?entity='+entitySelect.value+'&from='+fromInput.value+'&to='+toInput.value);
+        render();
+      }catch(ex){ err.textContent = ex.message; }
+    }},['Run report']),
+    el('button',{class:'btn ghost', onclick: exportReportExcel},['Export Excel']),
+    el('button',{class:'btn ghost', onclick: ()=>window.print()},['Print / Save as PDF']),
+  ]));
+  wrap.appendChild(card);
+
+  const result = state.reportResult;
+  if(result){
+    const rows = result.rows || [];
+    const cols = rows.length ? Object.keys(rows[0]) : [];
+    const table = el('table',{},[el('thead',{},[el('tr',{}, cols.map(c=>el('th',{},[c.replace(/_/g,' ')])))])]);
+    const tbody = el('tbody',{});
+    if(!rows.length) tbody.appendChild(el('tr',{class:'empty-row'},[el('td',{colspan:Math.max(cols.length,1)},['No data in this range.'])]));
+    rows.forEach(r=> tbody.appendChild(el('tr',{}, cols.map(c=>el('td',{},[r[c]==null?'—':String(r[c])])))));
+    table.appendChild(tbody);
+    wrap.appendChild(el('div',{class:'card'},[
+      el('div',{style:'padding:12px 16px;font-weight:700;font-size:13px;border-bottom:1px solid var(--line);'},[result.label+' · '+fmtDate(result.from)+' to '+fmtDate(result.to)]),
+      table,
+    ]));
+  }
+  return wrap;
+}
+function exportReportExcel(){
+  const result = state.reportResult;
+  if(!result){ toast('Run a report first.', true); return; }
+  // A GET navigation carries the session cookie automatically; the server
+  // sets Content-Disposition: attachment, so the browser downloads the file
+  // instead of leaving the app.
+  window.location.href = '/api/reports/export?entity='+result.entity+'&from='+result.from+'&to='+result.to;
+}
+
+// ---------------- fines & damage recovery ----------------
+const FINE_CATEGORIES = [['traffic_violation','Traffic violation'],['vehicle_damage','Vehicle damage'],['late_reporting','Late reporting'],['policy_violation','Policy violation'],['other','Other']];
+const RECOVERY_METHODS = [['immediate','Immediate'],['next_payroll','Next payroll'],['installments','Installments']];
+
+function renderFines(){
+  const wrap = el('div',{});
+  const fines = state.finesList || [];
+  wrap.appendChild(el('div',{class:'page-head'},[
+    el('div',{},[el('h2',{},['Fines & Damage Recovery']), el('div',{class:'sub'},[fines.length+' on record'])]),
+  ]));
+
+  if(!state.drivers.length){
+    wrap.appendChild(el('div',{class:'card'},[el('div',{style:'padding:24px;text-align:center;color:var(--ink-soft);'},['Add a driver first.'])]));
+    return wrap;
+  }
+
+  const card = el('div',{class:'card', style:'padding:18px; margin-bottom:18px; max-width:640px;'});
+  card.appendChild(el('div',{style:'font-weight:700;margin-bottom:12px;'},['Issue a fine']));
+  const driverSelect = el('select',{});
+  state.drivers.forEach(d=> driverSelect.appendChild(el('option',{value:d.id},[d.name])));
+  const dateInput = el('input',{type:'date', value:new Date().toISOString().slice(0,10)});
+  const categorySelect = el('select',{});
+  FINE_CATEGORIES.forEach(([v,l])=> categorySelect.appendChild(el('option',{value:v},[l])));
+  const amountInput = el('input',{type:'number', step:'1', placeholder:'e.g. 500'});
+  const recoverySelect = el('select',{});
+  RECOVERY_METHODS.forEach(([v,l])=> recoverySelect.appendChild(el('option',{value:v, selected:v==='next_payroll'?'selected':null},[l])));
+  const reasonInput = el('textarea',{placeholder:'Reason'});
+  card.appendChild(el('div',{class:'form-grid'},[
+    el('div',{class:'field'},[el('label',{},['Driver']), driverSelect]),
+    el('div',{class:'field'},[el('label',{},['Date']), dateInput]),
+    el('div',{class:'field'},[el('label',{},['Category']), categorySelect]),
+    el('div',{class:'field'},[el('label',{},['Amount (₹)']), amountInput]),
+    el('div',{class:'field'},[el('label',{},['Recovery method']), recoverySelect]),
+    el('div',{class:'field full'},[el('label',{},['Reason']), reasonInput]),
+  ]));
+  const err = el('div',{class:'error-text'},['']);
+  card.appendChild(err);
+  card.appendChild(el('button',{class:'btn primary', onclick: async ()=>{
+    err.textContent='';
+    try{
+      await api('/fines', {method:'POST', body:{driver_id:Number(driverSelect.value), date:dateInput.value, category:categorySelect.value, amount:Number(amountInput.value), recovery_method:recoverySelect.value, reason:reasonInput.value}});
+      toast('Fine recorded.');
+      amountInput.value=''; reasonInput.value='';
+      state.finesList = await api('/fines');
+      render();
+    }catch(ex){ err.textContent = ex.message; }
+  }},['Issue fine']));
+  wrap.appendChild(card);
+
+  const table = el('table',{},[el('thead',{},[el('tr',{},[
+    el('th',{},['Date']), el('th',{},['Driver']), el('th',{},['Category']), el('th',{},['Amount']), el('th',{},['Recovery']), el('th',{},['Status']), el('th',{},['']), el('th',{},['']),
+  ])])]);
+  const tbody = el('tbody',{});
+  if(!fines.length) tbody.appendChild(el('tr',{class:'empty-row'},[el('td',{colspan:8},['No fines recorded yet.'])]));
+  fines.forEach(f=>{
+    const locked = !!f.committed_at;
+    const canDecide = f.status==='pending' && (!locked || state.adminRole==='boss');
+    tbody.appendChild(el('tr',{},[
+      el('td',{},[fmtDate(f.date)]),
+      el('td',{},[f.driver_name]),
+      el('td',{},[(FINE_CATEGORIES.find(c=>c[0]===f.category)||[,f.category])[1]]),
+      el('td',{},['₹'+f.amount]),
+      el('td',{},[(RECOVERY_METHODS.find(r=>r[0]===f.recovery_method)||[,f.recovery_method])[1]]),
+      el('td',{},[statusPill(f.status)]),
+      el('td',{},[
+        canDecide ? el('div',{style:'display:flex;gap:6px;'},[
+          el('button',{class:'icon-btn', onclick:()=>setFineStatus(f.id,'recovered')},['Recovered']),
+          el('button',{class:'icon-btn danger', onclick:()=>setFineStatus(f.id,'waived')},['Waive']),
+        ]) : null,
+      ]),
+      el('td',{},[commitCell('fines', f, async ()=>{ state.finesList = await api('/fines'); render(); })]),
+    ]));
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(el('div',{class:'card'},[table]));
+  return wrap;
+}
+async function setFineStatus(id, status){
+  try{
+    await api('/fines/'+id+'/status', {method:'PUT', body:{status}});
+    toast('Fine marked '+status+'.');
+    state.finesList = await api('/fines');
+    render();
+  }catch(ex){ toast(ex.message, true); }
+}
+
+// ---------------- advances (running ledger) ----------------
+function renderAdvances(){
+  const wrap = el('div',{});
+  const rows = state.advancesList || [];
+  const outstandingTotal = rows.filter(a=>a.status==='outstanding').reduce((s,a)=>s+a.amount,0);
+  wrap.appendChild(el('div',{class:'page-head'},[
+    el('div',{},[el('h2',{},['Advances']), el('div',{class:'sub'},['₹'+outstandingTotal+' outstanding across all drivers · swept into the next payroll run automatically'])]),
+  ]));
+
+  if(!state.drivers.length){
+    wrap.appendChild(el('div',{class:'card'},[el('div',{style:'padding:24px;text-align:center;color:var(--ink-soft);'},['Add a driver first.'])]));
+    return wrap;
+  }
+
+  const card = el('div',{class:'card', style:'padding:18px; margin-bottom:18px; max-width:560px;'});
+  card.appendChild(el('div',{style:'font-weight:700;margin-bottom:12px;'},['Give an advance']));
+  const driverSelect = el('select',{});
+  state.drivers.forEach(d=> driverSelect.appendChild(el('option',{value:d.id},[d.name])));
+  const dateInput = el('input',{type:'date', value:new Date().toISOString().slice(0,10)});
+  const amountInput = el('input',{type:'number', step:'1', placeholder:'e.g. 2000'});
+  const noteInput = el('textarea',{placeholder:'Note (optional)'});
+  card.appendChild(el('div',{class:'form-grid'},[
+    el('div',{class:'field'},[el('label',{},['Driver']), driverSelect]),
+    el('div',{class:'field'},[el('label',{},['Date']), dateInput]),
+    el('div',{class:'field'},[el('label',{},['Amount (₹)']), amountInput]),
+    el('div',{class:'field full'},[el('label',{},['Note']), noteInput]),
+  ]));
+  const err = el('div',{class:'error-text'},['']);
+  card.appendChild(err);
+  card.appendChild(el('button',{class:'btn primary', onclick: async ()=>{
+    err.textContent='';
+    try{
+      await api('/advances', {method:'POST', body:{driver_id:Number(driverSelect.value), date:dateInput.value, amount:Number(amountInput.value), note:noteInput.value}});
+      toast('Advance recorded.');
+      amountInput.value=''; noteInput.value='';
+      state.advancesList = await api('/advances');
+      render();
+    }catch(ex){ err.textContent = ex.message; }
+  }},['Give advance']));
+  wrap.appendChild(card);
+
+  const table = el('table',{},[el('thead',{},[el('tr',{},[
+    el('th',{},['Date']), el('th',{},['Driver']), el('th',{},['Amount']), el('th',{},['Note']), el('th',{},['Status']), el('th',{},['']), el('th',{},['']),
+  ])])]);
+  const tbody = el('tbody',{});
+  if(!rows.length) tbody.appendChild(el('tr',{class:'empty-row'},[el('td',{colspan:7},['No advances recorded yet.'])]));
+  rows.forEach(a=>{
+    const canDelete = a.status==='outstanding' && (!a.committed_at || state.adminRole==='boss');
+    tbody.appendChild(el('tr',{},[
+      el('td',{},[fmtDate(a.date)]),
+      el('td',{},[a.driver_name]),
+      el('td',{},['₹'+a.amount]),
+      el('td',{},[a.note||'—']),
+      el('td',{},[statusPill(a.status)]),
+      el('td',{},[
+        canDelete ? el('button',{class:'icon-btn danger', onclick: async ()=>{
+          if(!confirm('Delete this advance?')) return;
+          try{ await api('/advances/'+a.id, {method:'DELETE'}); state.advancesList = await api('/advances'); render(); }
+          catch(ex){ toast(ex.message, true); }
+        }},['Delete']) : null,
+      ]),
+      el('td',{},[commitCell('advances', a, async ()=>{ state.advancesList = await api('/advances'); render(); })]),
+    ]));
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(el('div',{class:'card'},[table]));
+  return wrap;
+}
+
+// ---------------- payroll ----------------
+function renderPayroll(){
+  const wrap = el('div',{});
+  const runs = state.payrollList || [];
+  wrap.appendChild(el('div',{class:'page-head'},[
+    el('div',{},[el('h2',{},['Payroll']), el('div',{class:'sub'},['Net payable = Gross earnings − Commission − Fines − Outstanding advances + Approved reimbursements'])]),
+  ]));
+
+  if(!state.drivers.length){
+    wrap.appendChild(el('div',{class:'card'},[el('div',{style:'padding:24px;text-align:center;color:var(--ink-soft);'},['Add a driver first.'])]));
+    return wrap;
+  }
+  if(!state.payrollDriverId) state.payrollDriverId = state.drivers[0].id;
+
+  const card = el('div',{class:'card', style:'padding:18px; margin-bottom:18px; max-width:640px;'});
+  card.appendChild(el('div',{style:'font-weight:700;margin-bottom:12px;'},['Generate payroll']));
+  card.appendChild(el('div',{style:'font-size:12px;color:var(--ink-soft);margin-bottom:12px;'},[
+    'Outstanding advances (see the Advances page) are automatically swept into whatever payroll you generate next, however long ago they were given.',
+  ]));
+  const driverSelect = el('select',{});
+  state.drivers.forEach(d=> driverSelect.appendChild(el('option',{value:d.id, selected:String(state.payrollDriverId)===String(d.id)?'selected':null},[d.name])));
+  const today = new Date().toISOString().slice(0,10);
+  const monthAgo = new Date(Date.now()-30*86400000).toISOString().slice(0,10);
+  const fromInput = el('input',{type:'date', value:monthAgo});
+  const toInput = el('input',{type:'date', value:today});
+  card.appendChild(el('div',{class:'form-grid'},[
+    el('div',{class:'field'},[el('label',{},['Driver']), driverSelect]),
+    el('div',{class:'field'},[el('label',{},['From']), fromInput]),
+    el('div',{class:'field'},[el('label',{},['To']), toInput]),
+  ]));
+  const previewBox = el('div',{style:'margin-top:10px;'});
+  function renderPreview(p){
+    previewBox.innerHTML='';
+    if(!p) return;
+    const rows = [
+      ['Gross earnings', p.grossEarnings], ['Commission', -p.commissionAmount], ['Fines', -p.finesAmount],
+      ['Outstanding advances', -p.advanceAmount], ['Reimbursements', p.reimbursementsAmount], ['Net payable', p.netPayable],
+    ];
+    rows.forEach(([label,val],i)=>{
+      previewBox.appendChild(el('div',{style:'display:flex;justify-content:space-between;padding:4px 0;'+(i===rows.length-1?'border-top:1px solid var(--line);margin-top:4px;padding-top:8px;font-weight:700;':'')},[
+        el('span',{},[label]), el('span',{},['₹'+val]),
+      ]));
+    });
+  }
+  const err = el('div',{class:'error-text'},['']);
+  card.appendChild(el('div',{style:'display:flex;gap:8px;margin-top:8px;'},[
+    el('button',{class:'btn ghost', onclick: async ()=>{
+      err.textContent='';
+      try{
+        const p = await api('/payroll/preview?driver_id='+driverSelect.value+'&from='+fromInput.value+'&to='+toInput.value);
+        renderPreview(p);
+      }catch(ex){ err.textContent = ex.message; }
+    }},['Preview']),
+    el('button',{class:'btn primary', onclick: async ()=>{
+      err.textContent='';
+      try{
+        await api('/payroll', {method:'POST', body:{driver_id:Number(driverSelect.value), period_start:fromInput.value, period_end:toInput.value}});
+        toast('Payroll generated.');
+        state.payrollList = await api('/payroll');
+        render();
+      }catch(ex){ err.textContent = ex.message; }
+    }},['Generate']),
+  ]));
+  card.appendChild(err);
+  card.appendChild(previewBox);
+  wrap.appendChild(card);
+
+  const table = el('table',{},[el('thead',{},[el('tr',{},[
+    el('th',{},['Driver']), el('th',{},['Period']), el('th',{},['Gross']), el('th',{},['Commission']), el('th',{},['Fines']), el('th',{},['Reimb.']), el('th',{},['Advance']), el('th',{},['Net payable']), el('th',{},['Status']), el('th',{},['']), el('th',{},['']),
+  ])])]);
+  const tbody = el('tbody',{});
+  if(!runs.length) tbody.appendChild(el('tr',{class:'empty-row'},[el('td',{colspan:11},['No payroll runs yet.'])]));
+  runs.forEach(p=>{
+    tbody.appendChild(el('tr',{},[
+      el('td',{},[p.driver_name]),
+      el('td',{},[fmtDate(p.period_start)+' – '+fmtDate(p.period_end)]),
+      el('td',{},['₹'+p.gross_earnings]),
+      el('td',{},['₹'+p.commission_amount]),
+      el('td',{},['₹'+p.fines_amount]),
+      el('td',{},['₹'+p.reimbursements_amount]),
+      el('td',{},['₹'+p.advance_amount]),
+      el('td',{},[el('b',{},['₹'+p.net_payable])]),
+      el('td',{},[statusPill(p.status)]),
+      el('td',{},[
+        p.status==='draft' && (!p.committed_at || state.adminRole==='boss')
+          ? el('button',{class:'icon-btn', onclick: async ()=>{
+              try{ await api('/payroll/'+p.id+'/mark-paid', {method:'POST'}); toast('Marked paid.'); state.payrollList = await api('/payroll'); render(); }
+              catch(ex){ toast(ex.message, true); }
+            }},['Mark paid'])
+          : null,
+      ]),
+      el('td',{},[commitCell('payroll', p, async ()=>{ state.payrollList = await api('/payroll'); render(); })]),
+    ]));
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(el('div',{class:'card'},[table]));
+  return wrap;
+}
+
+// ---------------- maintenance ----------------
+const MAINTENANCE_TYPES = [['oil_change','Oil change'],['tyre_replacement','Tyre replacement'],['brake_service','Brake service'],['general_service','General service'],['battery','Battery'],['engine_repair','Engine repair'],['other','Other']];
+
+function renderMaintenance(){
+  const wrap = el('div',{});
+  const records = state.maintenanceList || [];
+  const dueSoon = state.maintenanceDueSoon || [];
+  wrap.appendChild(el('div',{class:'page-head'},[
+    el('div',{},[el('h2',{},['Maintenance']), el('div',{class:'sub'},[records.length+' service records'])]),
+  ]));
+
+  if(!state.vehicles.length){
+    wrap.appendChild(el('div',{class:'card'},[el('div',{style:'padding:24px;text-align:center;color:var(--ink-soft);'},['Add a vehicle first.'])]));
+    return wrap;
+  }
+
+  if(dueSoon.length){
+    const dueCard = el('div',{class:'card', style:'padding:16px;margin-bottom:18px;border-color:var(--warn);background:var(--warn-soft);'});
+    dueCard.appendChild(el('div',{style:'font-weight:700;margin-bottom:8px;'},['Due soon']));
+    dueSoon.forEach(m=>{
+      dueCard.appendChild(el('div',{style:'font-size:13px;padding:4px 0;'},[
+        el('b',{},[m.reg_no]),' — '+(MAINTENANCE_TYPES.find(t=>t[0]===m.type)||[,m.type])[1]+
+        (m.next_due_date?(' · due '+fmtDate(m.next_due_date)):'')+(m.next_due_km?(' · at '+m.next_due_km+' km'):''),
+      ]));
+    });
+    wrap.appendChild(dueCard);
+  }
+
+  const card = el('div',{class:'card', style:'padding:18px; margin-bottom:18px; max-width:640px;'});
+  card.appendChild(el('div',{style:'font-weight:700;margin-bottom:12px;'},['Log a service']));
+  const vehicleSelect = el('select',{});
+  state.vehicles.forEach(v=> vehicleSelect.appendChild(el('option',{value:v.id},[v.reg_no])));
+  const typeSelect = el('select',{});
+  MAINTENANCE_TYPES.forEach(([v,l])=> typeSelect.appendChild(el('option',{value:v},[l])));
+  const dateInput = el('input',{type:'date', value:new Date().toISOString().slice(0,10)});
+  const odoInput = el('input',{type:'number', step:'1', placeholder:'Odometer km'});
+  const costInput = el('input',{type:'number', step:'1', placeholder:'Cost (₹)'});
+  const nextDateInput = el('input',{type:'date'});
+  const nextKmInput = el('input',{type:'number', step:'1', placeholder:'Next due km'});
+  const notesInput = el('textarea',{placeholder:'Notes'});
+  card.appendChild(el('div',{class:'form-grid'},[
+    el('div',{class:'field'},[el('label',{},['Vehicle']), vehicleSelect]),
+    el('div',{class:'field'},[el('label',{},['Type']), typeSelect]),
+    el('div',{class:'field'},[el('label',{},['Service date']), dateInput]),
+    el('div',{class:'field'},[el('label',{},['Odometer (km)']), odoInput]),
+    el('div',{class:'field'},[el('label',{},['Cost (₹)']), costInput]),
+    el('div',{class:'field'},[el('label',{},['Next due date']), nextDateInput]),
+    el('div',{class:'field'},[el('label',{},['Next due km']), nextKmInput]),
+    el('div',{class:'field full'},[el('label',{},['Notes']), notesInput]),
+  ]));
+  const err = el('div',{class:'error-text'},['']);
+  card.appendChild(err);
+  card.appendChild(el('button',{class:'btn primary', onclick: async ()=>{
+    err.textContent='';
+    try{
+      await api('/maintenance', {method:'POST', body:{
+        vehicle_id:Number(vehicleSelect.value), type:typeSelect.value, service_date:dateInput.value,
+        odometer_km:odoInput.value||null, cost:costInput.value||0, next_due_date:nextDateInput.value||null, next_due_km:nextKmInput.value||null, notes:notesInput.value,
+      }});
+      toast('Service logged.');
+      odoInput.value=''; costInput.value=''; nextDateInput.value=''; nextKmInput.value=''; notesInput.value='';
+      state.maintenanceList = await api('/maintenance');
+      state.maintenanceDueSoon = await api('/maintenance/due-soon');
+      render();
+    }catch(ex){ err.textContent = ex.message; }
+  }},['Log service']));
+  wrap.appendChild(card);
+
+  const table = el('table',{},[el('thead',{},[el('tr',{},[
+    el('th',{},['Date']), el('th',{},['Vehicle']), el('th',{},['Type']), el('th',{},['Odometer']), el('th',{},['Cost']), el('th',{},['Next due']), el('th',{},['']),
+  ])])]);
+  const tbody = el('tbody',{});
+  if(!records.length) tbody.appendChild(el('tr',{class:'empty-row'},[el('td',{colspan:7},['No service records yet.'])]));
+  records.forEach(m=>{
+    tbody.appendChild(el('tr',{},[
+      el('td',{},[fmtDate(m.service_date)]),
+      el('td',{},[m.reg_no]),
+      el('td',{},[(MAINTENANCE_TYPES.find(t=>t[0]===m.type)||[,m.type])[1]]),
+      el('td',{},[m.odometer_km!=null?m.odometer_km+' km':'—']),
+      el('td',{},['₹'+m.cost]),
+      el('td',{},[m.next_due_date?fmtDate(m.next_due_date):(m.next_due_km?m.next_due_km+' km':'—')]),
+      el('td',{},[el('button',{class:'icon-btn danger', onclick: async ()=>{
+        if(!confirm('Delete this service record?')) return;
+        try{ await api('/maintenance/'+m.id, {method:'DELETE'}); state.maintenanceList = await api('/maintenance'); render(); }
+        catch(ex){ toast(ex.message, true); }
+      }},['Delete'])]),
+    ]));
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(el('div',{class:'card'},[table]));
+  return wrap;
+}
+
+// ---------------- incidents ----------------
+const INCIDENT_STATUSES = [['open','Open'],['under_investigation','Under investigation'],['resolved','Resolved'],['closed','Closed']];
+
+function renderIncidents(){
+  const wrap = el('div',{});
+  const rows = state.incidentsList || [];
+  wrap.appendChild(el('div',{class:'page-head'},[
+    el('div',{},[el('h2',{},['Accidents & Incidents']), el('div',{class:'sub'},[rows.length+' on record'])]),
+  ]));
+
+  if(state.drivers.length){
+    const card = el('div',{class:'card', style:'padding:18px; margin-bottom:18px; max-width:640px;'});
+    card.appendChild(el('div',{style:'font-weight:700;margin-bottom:12px;'},['Log an incident']));
+    const driverSelect = el('select',{});
+    state.drivers.forEach(d=> driverSelect.appendChild(el('option',{value:d.id},[d.name])));
+    const vehicleSelect = el('select',{});
+    vehicleSelect.appendChild(el('option',{value:''},['—']));
+    state.vehicles.forEach(v=> vehicleSelect.appendChild(el('option',{value:v.id},[v.reg_no])));
+    const dateInput = el('input',{type:'date', value:new Date().toISOString().slice(0,10)});
+    const locationInput = el('input',{type:'text', placeholder:'Location'});
+    const costInput = el('input',{type:'number', step:'1', placeholder:'Repair cost (₹)'});
+    const descInput = el('textarea',{placeholder:'What happened'});
+    card.appendChild(el('div',{class:'form-grid'},[
+      el('div',{class:'field'},[el('label',{},['Driver']), driverSelect]),
+      el('div',{class:'field'},[el('label',{},['Vehicle']), vehicleSelect]),
+      el('div',{class:'field'},[el('label',{},['Date']), dateInput]),
+      el('div',{class:'field'},[el('label',{},['Location']), locationInput]),
+      el('div',{class:'field'},[el('label',{},['Repair cost (₹)']), costInput]),
+      el('div',{class:'field full'},[el('label',{},['Description']), descInput]),
+    ]));
+    const err = el('div',{class:'error-text'},['']);
+    card.appendChild(err);
+    card.appendChild(el('button',{class:'btn primary', onclick: async ()=>{
+      err.textContent='';
+      try{
+        await api('/incidents', {method:'POST', body:{driver_id:Number(driverSelect.value), vehicle_id:vehicleSelect.value?Number(vehicleSelect.value):null, incident_date:dateInput.value, location:locationInput.value, repair_cost:costInput.value||0, description:descInput.value}});
+        toast('Incident logged.');
+        locationInput.value=''; costInput.value=''; descInput.value='';
+        state.incidentsList = await api('/incidents');
+        render();
+      }catch(ex){ err.textContent = ex.message; }
+    }},['Log incident']));
+    wrap.appendChild(card);
+  }
+
+  const table = el('table',{},[el('thead',{},[el('tr',{},[
+    el('th',{},['Date']), el('th',{},['Driver']), el('th',{},['Vehicle']), el('th',{},['Location']), el('th',{},['Repair cost']), el('th',{},['Status']),
+  ])])]);
+  const tbody = el('tbody',{});
+  if(!rows.length) tbody.appendChild(el('tr',{class:'empty-row'},[el('td',{colspan:6},['No incidents on record.'])]));
+  rows.forEach(i=>{
+    const statusSelect = el('select',{},INCIDENT_STATUSES.map(([v,l])=>el('option',{value:v, selected:i.status===v?'selected':null},[l])));
+    statusSelect.addEventListener('change', async ()=>{
+      try{ await api('/incidents/'+i.id, {method:'PUT', body:{status:statusSelect.value}}); toast('Status updated.'); state.incidentsList = await api('/incidents'); render(); }
+      catch(ex){ toast(ex.message, true); }
+    });
+    tbody.appendChild(el('tr',{},[
+      el('td',{},[fmtDate(i.incident_date), el('div',{style:'font-size:11px;color:var(--ink-soft);'},[i.description||''])]),
+      el('td',{},[i.driver_name]),
+      el('td',{},[i.vehicle_reg_no||'—']),
+      el('td',{},[i.location||'—']),
+      el('td',{},[i.repair_cost?('₹'+i.repair_cost):'—']),
+      el('td',{},[statusSelect]),
+    ]));
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(el('div',{class:'card'},[table]));
+  return wrap;
+}
+
+// ---------------- notifications ----------------
+function renderNotifications(){
+  const wrap = el('div',{});
+  const rows = state.notificationsList || [];
+  const unread = rows.filter(n=>!n.read_at).length;
+  wrap.appendChild(el('div',{class:'page-head'},[
+    el('div',{},[el('h2',{},['Notifications']), el('div',{class:'sub'},[unread+' unread of '+rows.length])]),
+    el('div',{class:'toolbar'},[
+      el('button',{class:'btn ghost', onclick: async ()=>{ await api('/notifications/read-all',{method:'POST'}); state.notificationsList = await api('/notifications'); render(); }},['Mark all read']),
+    ]),
+  ]));
+  const catClass = {critical:'bad', warning:'warn', reminder:'warn', financial:'good'};
+  const list = el('div',{class:'card'});
+  if(!rows.length) list.appendChild(el('div',{style:'padding:24px;text-align:center;color:var(--ink-soft);'},['No notifications yet.']));
+  rows.forEach(n=>{
+    list.appendChild(el('div',{
+      style:'display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);'+(n.read_at?'':'background:var(--warn-soft);'),
+    },[
+      el('div',{},[
+        el('span',{class:'pill '+(catClass[n.category]||'warn')},[n.category]),
+        el('span',{style:'margin-left:10px;font-size:13px;'},[n.message]),
+        el('div',{style:'font-size:11px;color:var(--ink-soft);margin-top:4px;'},[fmtDateTime(n.created_at)]),
+      ]),
+      !n.read_at ? el('button',{class:'icon-btn', onclick: async ()=>{ await api('/notifications/'+n.id+'/read',{method:'POST'}); state.notificationsList = await api('/notifications'); render(); }},['Mark read']) : null,
+    ]));
+  });
+  wrap.appendChild(list);
+  return wrap;
+}
+
+// ---------------- audit logs ----------------
+function renderAuditLogs(){
+  const wrap = el('div',{});
+  const rows = state.auditLogsList || [];
+  wrap.appendChild(el('div',{class:'page-head'},[
+    el('div',{},[el('h2',{},['Audit Logs']), el('div',{class:'sub'},[rows.length+' recent actions']) ]),
+  ]));
+  const table = el('table',{},[el('thead',{},[el('tr',{},[
+    el('th',{},['When']), el('th',{},['User']), el('th',{},['Action']), el('th',{},['Entity']), el('th',{},['Details']),
+  ])])]);
+  const tbody = el('tbody',{});
+  if(!rows.length) tbody.appendChild(el('tr',{class:'empty-row'},[el('td',{colspan:5},['No actions recorded yet.'])]));
+  rows.forEach(a=>{
+    tbody.appendChild(el('tr',{},[
+      el('td',{},[fmtDateTime(a.created_at)]),
+      el('td',{},[a.username||'—']),
+      el('td',{},[a.action]),
+      el('td',{},[a.entity_type+' #'+(a.entity_id||'')]),
+      el('td',{},[el('span',{style:'font-size:11px;color:var(--ink-soft);'},[
+        a.new_value ? JSON.stringify(a.new_value).slice(0,120) : (a.old_value ? 'deleted' : ''),
+      ])]),
+    ]));
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(el('div',{class:'card'},[table]));
+  return wrap;
+}
+
+// ---------------- analytics ----------------
+function renderAnalytics(){
+  const wrap = el('div',{});
+  wrap.appendChild(el('div',{class:'page-head'},[
+    el('div',{},[el('h2',{},['Analytics']), el('div',{class:'sub'},['Fleet, financial, and driver performance'])]),
+  ]));
+
+  const today = new Date().toISOString().slice(0,10);
+  const monthAgo = new Date(Date.now()-30*86400000).toISOString().slice(0,10);
+  const fromInput = el('input',{type:'date', value: state.analyticsFrom || monthAgo});
+  const toInput = el('input',{type:'date', value: state.analyticsTo || today});
+  wrap.appendChild(el('div',{class:'toolbar', style:'margin-bottom:18px;'},[
+    el('span',{style:'font-size:13px;color:var(--ink-soft);font-weight:600;'},['Range:']), fromInput, toInput,
+    el('button',{class:'btn primary', onclick: async ()=>{
+      state.analyticsFrom = fromInput.value; state.analyticsTo = toInput.value;
+      try{ state.analyticsData = await api('/analytics?from='+fromInput.value+'&to='+toInput.value); render(); }
+      catch(ex){ toast(ex.message, true); }
+    }},['Update']),
+  ]));
+
+  const data = state.analyticsData;
+  if(!data){ wrap.appendChild(el('div',{style:'padding:24px;text-align:center;color:var(--ink-soft);'},['Loading…'])); return wrap; }
+
+  wrap.appendChild(el('div',{class:'kpis'},[
+    kpiTile(data.fleet.totalDistance+' km', 'Distance travelled'),
+    kpiTile('₹'+data.fleet.fuelCost, 'Fuel cost'),
+    kpiTile('₹'+data.financial.revenue, 'Revenue'),
+    kpiTile('₹'+data.financial.expenses.total, 'Expenses'),
+    kpiTile('₹'+data.financial.profitEstimate, 'Profit estimate', data.financial.profitEstimate<0),
+  ]));
+
+  const expCard = el('div',{class:'card', style:'padding:16px;margin-bottom:18px;max-width:420px;'});
+  expCard.appendChild(el('div',{style:'font-weight:700;margin-bottom:10px;'},['Expense breakdown']));
+  [['Fuel',data.financial.expenses.fuel],['Reimbursements',data.financial.expenses.reimbursements],['Maintenance',data.financial.expenses.maintenance],['Incidents',data.financial.expenses.incidents]].forEach(([label,val])=>{
+    expCard.appendChild(el('div',{style:'display:flex;justify-content:space-between;padding:4px 0;font-size:13px;'},[el('span',{},[label]), el('span',{},['₹'+val])]));
+  });
+  wrap.appendChild(expCard);
+
+  const table = el('table',{},[el('thead',{},[el('tr',{},[
+    el('th',{},['Driver']), el('th',{},['Earnings']), el('th',{},['Distance']), el('th',{},['Safety score']), el('th',{},['Rating']),
+  ])])]);
+  const tbody = el('tbody',{});
+  if(!data.drivers.length) tbody.appendChild(el('tr',{class:'empty-row'},[el('td',{colspan:5},['No drivers yet.'])]));
+  const ratingClass = {Excellent:'good', Good:'good', Average:'warn', Poor:'bad', Dangerous:'bad'};
+  data.drivers.forEach(d=>{
+    tbody.appendChild(el('tr',{},[
+      el('td',{},[d.name]),
+      el('td',{},['₹'+d.earnings]),
+      el('td',{},[d.distance+' km']),
+      el('td',{},[String(d.safetyScore)]),
+      el('td',{},[el('span',{class:'pill '+(ratingClass[d.rating]||'warn')},[d.rating])]),
+    ]));
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(el('div',{class:'card'},[table]));
+  return wrap;
+}
+
+// ---------------- website leads (ptsnagpur.in) ----------------
+const LEAD_STATUSES = [['new','New'],['contacted','Contacted'],['closed','Closed']];
+function leadStatusSelect(currentStatus, onChange){
+  const sel = el('select',{});
+  LEAD_STATUSES.forEach(([v,l])=> sel.appendChild(el('option',{value:v, selected:currentStatus===v?'selected':null},[l])));
+  sel.addEventListener('change', ()=>onChange(sel.value));
+  return sel;
+}
+function renderWebsiteLeads(){
+  const wrap = el('div',{});
+  wrap.appendChild(el('div',{class:'page-head'},[
+    el('div',{},[el('h2',{},['Website Leads']), el('div',{class:'sub'},['Booking requests and enquiries submitted on ptsnagpur.in — these also go out on WhatsApp, this is the backup record.'])]),
+  ]));
+
+  wrap.appendChild(el('div',{style:'font-weight:700;margin-bottom:10px;'},['Booking requests']));
+  const bookings = state.websiteBookings || [];
+  const bTable = el('table',{},[el('thead',{},[el('tr',{},[
+    el('th',{},['Submitted']), el('th',{},['Name']), el('th',{},['Phone']), el('th',{},['Pickup']), el('th',{},['Destination']), el('th',{},['Date / Time']), el('th',{},['Passengers']), el('th',{},['Status']),
+  ])])]);
+  const bBody = el('tbody',{});
+  if(!bookings.length) bBody.appendChild(el('tr',{class:'empty-row'},[el('td',{colspan:8},[state.websiteBookings===null?'Loading…':'No booking requests yet.'])]));
+  bookings.forEach(b=>{
+    bBody.appendChild(el('tr',{},[
+      el('td',{},[fmtDateTime(b.created_at)]),
+      el('td',{},[b.customer_name]),
+      el('td',{},[el('a',{href:'tel:'+b.phone_number},[b.phone_number])]),
+      el('td',{},[b.pickup_location]),
+      el('td',{},[b.destination]),
+      el('td',{},[(b.travel_date||'—')+(b.travel_time?' '+b.travel_time:'')]),
+      el('td',{},[b.passengers!=null?String(b.passengers):'—']),
+      el('td',{},[leadStatusSelect(b.status, async (v)=>{ await api('/website/bookings/'+b.id+'/status',{method:'PUT', body:{status:v}}); state.websiteBookings = await api('/website/bookings'); render(); })]),
+    ]));
+  });
+  bTable.appendChild(bBody);
+  wrap.appendChild(el('div',{class:'card', style:'margin-bottom:26px;'},[bTable]));
+
+  wrap.appendChild(el('div',{style:'font-weight:700;margin-bottom:10px;'},['Contact enquiries']));
+  const contacts = state.websiteContacts || [];
+  const cTable = el('table',{},[el('thead',{},[el('tr',{},[
+    el('th',{},['Submitted']), el('th',{},['Name']), el('th',{},['Email']), el('th',{},['Message']), el('th',{},['Status']),
+  ])])]);
+  const cBody = el('tbody',{});
+  if(!contacts.length) cBody.appendChild(el('tr',{class:'empty-row'},[el('td',{colspan:5},[state.websiteContacts===null?'Loading…':'No contact messages yet.'])]));
+  contacts.forEach(c=>{
+    cBody.appendChild(el('tr',{},[
+      el('td',{},[fmtDateTime(c.created_at)]),
+      el('td',{},[c.name]),
+      el('td',{},[c.email||'—']),
+      el('td',{},[c.message]),
+      el('td',{},[leadStatusSelect(c.status, async (v)=>{ await api('/website/contact/'+c.id+'/status',{method:'PUT', body:{status:v}}); state.websiteContacts = await api('/website/contact'); render(); })]),
+    ]));
+  });
+  cTable.appendChild(cBody);
+  wrap.appendChild(el('div',{class:'card'},[cTable]));
+  return wrap;
+}
+
+// ---------------- vehicle expenses & profit ----------------
+function r2(n){ return Math.round((Number(n)||0)*100)/100; }
+function inrp(n){ const v = r2(n); return (v<0?'−':'')+'₹'+Math.abs(v).toLocaleString('en-IN'); }
+
+function vehicleProfitRange(){
+  const vp = state.vehicleProfit;
+  const today = new Date().toISOString().slice(0,10);
+  if(vp.filterMode==='month'){
+    const [y,m] = vp.month.split('-').map(Number);
+    const lastDay = new Date(y, m, 0).getDate();
+    return { from: vp.month+'-01', to: vp.month+'-'+String(lastDay).padStart(2,'0') };
+  }
+  if(vp.filterMode==='custom'){
+    return { from: vp.customFrom||today, to: vp.customTo||today };
+  }
+  return { from: today, to: today };
+}
+
+async function loadVehicleProfitCards(){
+  const today = new Date().toISOString().slice(0,10);
+  await Promise.all(state.vehicles.map(async (v)=>{
+    try{ state.vehicleProfit.cards[v.id] = await api('/vehicles/'+v.id+'/profit?from='+today+'&to='+today); }
+    catch(e){ /* leave uncached; card shows a loading dash */ }
+  }));
+  render();
+}
+
+async function loadVehicleProfitDetail(){
+  const vp = state.vehicleProfit;
+  const {from,to} = vehicleProfitRange();
+  vp.loading = true; render();
+  try{ vp.detail = await api('/vehicles/'+vp.expandedVehicleId+'/profit?from='+from+'&to='+to); }
+  catch(ex){ vp.detail = null; toast(ex.message, true); }
+  vp.loading = false; render();
+}
+
+function renderVehicleProfit(){
+  const vp = state.vehicleProfit;
+  const wrap = el('div',{});
+  wrap.appendChild(el('div',{class:'page-head'},[
+    el('div',{},[el('h2',{},['Expenses & Profit'])]),
+  ]));
+
+  const cardsLoaded = state.vehicles.filter(v=>vp.cards[v.id]);
+  const todayEarning = cardsLoaded.reduce((s,v)=>s+vp.cards[v.id].totals.totalEarning, 0);
+  const todayCost = cardsLoaded.reduce((s,v)=>s+vp.cards[v.id].totals.totalCost, 0);
+  const todayProfit = cardsLoaded.reduce((s,v)=>s+vp.cards[v.id].totals.profit, 0);
+  const summaryReady = cardsLoaded.length === state.vehicles.length && state.vehicles.length > 0;
+  const summaryCard = el('div',{class:'card', style:'padding:18px 20px; margin-bottom:18px;'});
+  summaryCard.appendChild(el('div',{style:'font-weight:700;font-size:15px;margin-bottom:12px;'},["Today's Fleet Summary"]));
+  const summaryGrid = el('div',{style:'display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:16px;'});
+  summaryGrid.appendChild(el('div',{},[
+    el('div',{class:'l'},['Total earning']),
+    el('div',{style:'font-family:"IBM Plex Mono",monospace; font-size:22px; font-weight:500; margin-top:2px;'},[summaryReady?inrp(todayEarning):'…']),
+  ]));
+  summaryGrid.appendChild(el('div',{},[
+    el('div',{class:'l'},['Total cost']),
+    el('div',{style:'font-family:"IBM Plex Mono",monospace; font-size:22px; font-weight:500; margin-top:2px;'},[summaryReady?inrp(todayCost):'…']),
+  ]));
+  summaryGrid.appendChild(el('div',{},[
+    el('div',{class:'l'},[todayProfit<0?'Total loss':'Total profit']),
+    el('div',{style:'font-family:"IBM Plex Mono",monospace; font-size:22px; font-weight:500; margin-top:2px;'+(summaryReady?(todayProfit>=0?'color:var(--good);':'color:var(--bad);'):'')},[summaryReady?inrp(todayProfit):'…']),
+  ]));
+  summaryCard.appendChild(summaryGrid);
+  wrap.appendChild(summaryCard);
+
+  const cardRow = el('div',{class:'kpis', style:'grid-template-columns:repeat(auto-fit, minmax(220px,1fr));'});
+  state.vehicles.forEach((v)=>{
+    const data = vp.cards[v.id];
+    const profitToday = data ? data.totals.profit : null;
+    const isOpen = vp.expandedVehicleId === v.id;
+    const card = el('div',{
+      class:'kpi clickable'+(isOpen?' attn':''), role:'button', tabindex:'0',
+      onclick: ()=>{
+        vp.expandedVehicleId = isOpen ? null : v.id;
+        vp.detail = null;
+        render();
+        if(vp.expandedVehicleId) loadVehicleProfitDetail();
+      },
+    },[
+      el('div',{style:'font-weight:700;font-size:14px;margin-bottom:2px;'},[v.reg_no]),
+      el('div',{class:'l'},[v.is_jiju ? 'Jiju settlement — no EMI' : (v.emi_amount ? 'EMI '+inrp(v.emi_amount)+'/'+(v.emi_period||'monthly') : 'No EMI set')]),
+      el('div',{class:'v', style:'margin-top:8px;'+(profitToday==null?'':(profitToday>=0?'color:var(--good);':'color:var(--bad);'))},[profitToday==null?'…':inrp(profitToday)]),
+      el('div',{class:'l'},["Today's profit"]),
+    ]);
+    cardRow.appendChild(card);
+  });
+  wrap.appendChild(cardRow);
+
+  if(vp.expandedVehicleId) wrap.appendChild(renderVehicleProfitDetail(vp.expandedVehicleId));
+  return wrap;
+}
+
+function renderVehicleProfitDetail(vehicleId){
+  const vp = state.vehicleProfit;
+  const v = state.vehicles.find(x=>x.id===vehicleId);
+  const wrap = el('div',{class:'card', style:'padding:20px 22px; margin-top:18px;'});
+  wrap.appendChild(el('div',{style:'font-weight:700;font-size:15px;margin-bottom:12px;'},[(v?v.reg_no:vehicleId)+' — details']));
+
+  const filterRow = el('div',{class:'toolbar', style:'margin-bottom:12px;'});
+  [['today','Today'],['month','Month'],['custom','Custom range']].forEach(([k,l])=>{
+    const b = el('button',{class:'btn'+(vp.filterMode===k?' primary':' ghost')},[l]);
+    b.addEventListener('click', ()=>{ vp.filterMode=k; render(); loadVehicleProfitDetail(); });
+    filterRow.appendChild(b);
+  });
+  if(vp.filterMode==='month'){
+    const mi = el('input',{type:'month', value:vp.month});
+    mi.addEventListener('change', ()=>{ vp.month=mi.value; render(); loadVehicleProfitDetail(); });
+    filterRow.appendChild(mi);
+  } else if(vp.filterMode==='custom'){
+    const today = new Date().toISOString().slice(0,10);
+    const fromI = el('input',{type:'date', value:vp.customFrom||today});
+    fromI.addEventListener('change', ()=>{ vp.customFrom=fromI.value; render(); loadVehicleProfitDetail(); });
+    const toI = el('input',{type:'date', value:vp.customTo||today});
+    toI.addEventListener('change', ()=>{ vp.customTo=toI.value; render(); loadVehicleProfitDetail(); });
+    filterRow.appendChild(fromI); filterRow.appendChild(toI);
+  }
+  wrap.appendChild(filterRow);
+
+  if(!vp.detail || vp.loading){
+    wrap.appendChild(el('div',{style:'padding:20px 0;color:var(--ink-soft);'},['Loading…']));
+    return wrap;
+  }
+
+  const d = vp.detail;
+  const t = d.totals;
+  const fuelTypeKeys = Object.keys(t.fuelByType);
+
+  wrap.appendChild(el('div',{style:'display:flex;gap:8px;margin-bottom:16px;'},[
+    el('button',{class:'btn ghost', onclick: ()=>{ window.location.href = '/api/vehicles/'+vehicleId+'/profit/export?from='+d.from+'&to='+d.to; }},['Export Excel']),
+    el('button',{class:'btn ghost', onclick: ()=>window.print()},['Print / Save as PDF']),
+  ]));
+
+  const halves = el('div',{style:'display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;'});
+  const expCard = el('div',{class:'card', style:'padding:16px 18px;'});
+  expCard.appendChild(el('div',{style:'font-weight:700;margin-bottom:8px;'},['Expenses']));
+  const expRows = [];
+  if(fuelTypeKeys.length) fuelTypeKeys.forEach((ft)=> expRows.push(['Fuel: '+ft, t.fuelByType[ft]]));
+  else expRows.push(['Fuel', 0]);
+  expRows.push([d.isJiju ? 'To Jiju (flat/day × days in range)' : 'EMI ('+inrp(v?v.emi_amount:0)+'/'+((v&&v.emi_period)||'monthly')+' ÷ days × range)', t.overhead]);
+  expRows.push(['Maintenance (manual)', t.maintenanceManual]);
+  expRows.push(['Maintenance (logged)', t.maintenanceLogged]);
+  expRows.push(['Expense claims (approved)', t.supplies]);
+  expRows.push(['Driver earning (commission)', t.driverSalary]);
+  expRows.forEach(([label,val])=>{
+    expCard.appendChild(el('div',{style:'display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line);font-size:13px;'},[
+      el('span',{},[label]), el('span',{},[inrp(val)]),
+    ]));
+  });
+  expCard.appendChild(el('div',{style:'display:flex;justify-content:space-between;padding:8px 0;font-weight:700;'},[
+    el('span',{},['Total cost']), el('span',{},[inrp(t.totalCost)]),
+  ]));
+  halves.appendChild(expCard);
+
+  const profCard = el('div',{class:'card', style:'padding:16px 18px;'});
+  profCard.appendChild(el('div',{style:'font-weight:700;margin-bottom:8px;'},['Profit']));
+  [['Total earning', t.totalEarning], ['Total cost', -t.totalCost]].forEach(([label,val])=>{
+    profCard.appendChild(el('div',{style:'display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line);font-size:13px;'},[
+      el('span',{},[label]), el('span',{},[(val<0?'−':'')+inrp(Math.abs(val))]),
+    ]));
+  });
+  profCard.appendChild(el('div',{style:'font-size:24px;font-weight:700;margin-top:10px;'+(t.profit>=0?'color:var(--good);':'color:var(--bad);')},[inrp(t.profit)]));
+  profCard.appendChild(el('div',{style:'font-size:12px;color:var(--ink-soft);'},['Net profit for '+d.from+(d.from!==d.to?' – '+d.to:'')]));
+  halves.appendChild(profCard);
+  wrap.appendChild(halves);
+
+  wrap.appendChild(el('div',{style:'font-weight:700;margin-bottom:8px;'},['Day-by-day']));
+  const cols = ['Date','Driver','Start reading','End reading','Total run (km)', ...fuelTypeKeys.map((f)=>'Fuel: '+f), 'Total earning','Driver earning', d.isJiju?'To Jiju':'EMI', 'Maint. (manual)','Maint. (logged)','Expense claims','Cost','Profit'];
+  const table = el('table',{},[el('thead',{},[el('tr',{}, cols.map(c=>el('th',{},[c])))])]);
+  const tbody = el('tbody',{});
+  d.rows.forEach((r)=>{
+    tbody.appendChild(el('tr',{},[
+      el('td',{},[r.date]),
+      el('td',{},[r.driver||'—']),
+      el('td',{},[r.startReading==null?'—':String(r.startReading)]),
+      el('td',{},[r.endReading==null?'—':String(r.endReading)]),
+      el('td',{},[r.totalRun==null?'—':String(r.totalRun)]),
+      ...fuelTypeKeys.map((ft)=>{
+        const line = r.fuelLines.find((l)=>((l.fuelType?l.fuelType.charAt(0).toUpperCase()+l.fuelType.slice(1):'Other'))===ft);
+        return el('td',{},[line?inrp(line.amount):'—']);
+      }),
+      el('td',{},[inrp(r.totalEarning)]),
+      el('td',{},[inrp(r.driverSalary)]),
+      el('td',{},[inrp(r.overhead)]),
+      el('td',{},[inrp(r.maintenanceManual)]),
+      el('td',{},[inrp(r.maintenanceLogged)]),
+      el('td',{},[inrp(r.supplies)]),
+      el('td',{},[inrp(r.cost)]),
+      el('td',{style:'font-weight:700;'+(r.profit>=0?'color:var(--good);':'color:var(--bad);')},[inrp(r.profit)]),
+    ]));
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(el('div',{style:'overflow-x:auto;'},[table]));
+
+  return wrap;
+}
+
+// ---------------- dashboard ----------------
+function renderDashboard(){
+  const wrap = el('div',{});
+  wrap.appendChild(el('div',{class:'page-head'},[
+    el('div',{},[el('h2',{},['Dashboard']), el('div',{class:'sub'},['Fleet snapshot, '+fmtDate(new Date().toISOString())])]),
+  ]));
+
+  const activeDrivers = state.drivers.filter(d=>d.status==='active').length;
+  const suspended = state.drivers.filter(d=>d.status==='suspended').length;
+  const assignedVehicles = state.vehicles.filter(v=>v.assigned_driver_id).length;
+  const expiringCount = state.expiringDocs.length;
+  const onDutyCount = state.drivers.filter(d=>{
+    const s = d.today_shift && d.today_shift.shift_status;
+    return s==='checked_in' || s==='on_lunch';
+  }).length;
+
+  const kpis = el('div',{class:'kpis'},[
+    kpiTile(state.vehicles.length, 'Vehicles', false, ()=> goToView('vehicles', {vehicleSearch:'', vehicleAssignedFilter:null})),
+    kpiTile(activeDrivers, 'Active drivers', false, ()=> goToView('drivers', {driverSearch:'', driverStatusFilter:'active'})),
+    kpiTile(onDutyCount, 'On duty now', false, ()=> goToView('live-map')),
+    kpiTile(suspended, 'Suspended drivers', false, ()=> goToView('drivers', {driverSearch:'', driverStatusFilter:'suspended'})),
+    kpiTile(assignedVehicles+' / '+state.vehicles.length, 'Vehicles assigned', false, ()=> goToView('vehicles', {vehicleSearch:'', vehicleAssignedFilter:'assigned'})),
+    kpiTile(expiringCount, 'Docs expiring', expiringCount>0, ()=>{
+      const card = document.getElementById('docsExpiringCard');
+      if(card) card.scrollIntoView({behavior:'smooth', block:'start'});
+    }),
+  ]);
+  wrap.appendChild(kpis);
+
+  const grid = el('div',{style:'display:grid; grid-template-columns:1fr 1fr; gap:16px;'});
+  grid.appendChild(dashboardListCard('Recently added drivers', state.drivers.slice().sort((a,b)=>b.id-a.id).slice(0,5), d=>[
+    el('span',{class:'name-cell'},[el('b',{},[d.name]), el('span',{},[d.phone||'no phone on file'])]),
+    statusPill(d.status),
+  ], ()=>{ state.view='drivers'; render(); }));
+  grid.appendChild(dashboardListCard('Fleet roster', state.vehicles.slice().sort((a,b)=>a.reg_no.localeCompare(b.reg_no)), v=>[
+    el('span',{class:'name-cell'},[el('b',{},[v.reg_no]), el('span',{},[v.model||'—'])]),
+    v.driver_name ? el('span',{},[v.driver_name]) : el('span',{style:'color:var(--ink-soft)'},['Unassigned']),
+  ], ()=>{ state.view='vehicles'; render(); }));
+  wrap.appendChild(grid);
+
+  wrap.appendChild(el('div',{id:'docsExpiringCard', style:'margin-top:16px;'},[docsExpiringCard()]));
+  return wrap;
+}
+function kpiTile(v,l,attn,onclick){ return el('div',{class:'kpi'+(attn?' attn':'')+(onclick?' clickable':''), onclick, role:onclick?'button':null, tabindex:onclick?'0':null},[el('div',{class:'v'},[String(v)]), el('div',{class:'l'},[l])]); }
+function docsExpiringCard(){
+  const rows = state.expiringDocs.slice(0,8);
+  const labels = {...DRIVER_DOC_LABELS, ...VEHICLE_DOC_LABELS};
+  return dashboardListCard('Documents expiring (next 30 days)', rows, doc=>[
+    el('span',{class:'name-cell'},[el('b',{},[doc.owner_label]), el('span',{},[labels[doc.doc_type]||doc.doc_type])]),
+    docExpiryPill(doc.expires_on),
+  ], null, doc=>{
+    if(doc.kind==='driver') openDriverDrawer('view', doc.owner_id);
+    else openVehicleDrawer('view', doc.owner_id);
+  }, 'Nothing expiring in the next 30 days');
+}
+function dashboardListCard(title, rows, rowFn, onSeeAll, onRowClick, emptyText){
+  const card = el('div',{class:'card'});
+  const head = el('div',{style:'display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line);'},[
+    el('b',{style:'font-size:13.5px;'},[title]),
+    onSeeAll ? el('button',{class:'btn ghost', style:'padding:4px 10px;font-size:11.5px;', onclick:onSeeAll},['See all']) : null,
+  ]);
+  card.appendChild(head);
+  const body = el('div',{style:'padding:6px 16px;'});
+  if(!rows.length) body.appendChild(el('div',{style:'padding:20px 0;text-align:center;color:var(--ink-soft);font-size:13px;'},[emptyText||'Nothing here yet']));
+  rows.forEach(r=>{
+    const cells = rowFn(r);
+    body.appendChild(el('div',{style:'display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);'+(onRowClick?'cursor:pointer;':''), onclick: onRowClick?()=>onRowClick(r):null},cells));
+  });
+  card.appendChild(body);
+  return card;
+}
+
+// ---------------- drivers list ----------------
+function renderDrivers(){
+  const wrap = el('div',{});
+  wrap.appendChild(el('div',{class:'page-head'},[
+    el('div',{},[el('h2',{},['Drivers']), el('div',{class:'sub'},[state.drivers.length+' on the roster'])]),
+    el('div',{class:'toolbar'},[
+      state.driverStatusFilter ? el('span',{class:'filter-chip'},[
+        'Status: '+state.driverStatusFilter,
+        el('button',{onclick:()=>{state.driverStatusFilter=null; render();}, title:'Clear filter'},['×']),
+      ]) : null,
+      searchInput(state.driverSearch, v=>{state.driverSearch=v; render();}, 'Search drivers…'),
+      el('button',{class:'btn primary', onclick:()=>openDriverDrawer('add')},['+ Add driver']),
+    ]),
+  ]));
+
+  const q = state.driverSearch.trim().toLowerCase();
+  const rows = state.drivers.filter(d=>
+    (!q || d.name.toLowerCase().includes(q) || (d.phone||'').includes(q)) &&
+    (!state.driverStatusFilter || d.status===state.driverStatusFilter)
+  );
+
+  const table = el('table',{},[
+    el('thead',{},[el('tr',{},[
+      el('th',{},['Driver']), el('th',{},['Phone']), el('th',{},['Status']), el('th',{},["Today's shift"]), el('th',{},['Commission']), el('th',{},['Vehicle']), el('th',{},['Documents']),
+    ])]),
+  ]);
+  const tbody = el('tbody',{});
+  if(!rows.length){
+    tbody.appendChild(el('tr',{class:'empty-row'},[el('td',{colspan:7},[(q||state.driverStatusFilter)?'No drivers match this filter.':'No drivers yet — add the first one.'])]));
+  }
+  rows.forEach(d=>{
+    tbody.appendChild(el('tr',{onclick:()=>openDriverDrawer('view', d.id)},[
+      el('td',{},[el('span',{class:'name-cell'},[el('b',{},[d.name]), el('span',{},['Joined '+fmtDate(d.joined_on)])])]),
+      el('td',{},[d.phone||'—']),
+      el('td',{},[statusPill(d.status)]),
+      el('td',{},[shiftPill(d.today_shift)]),
+      el('td',{},[d.commission_pct+'%']),
+      el('td',{},[d.assigned_vehicle?d.assigned_vehicle.reg_no:'—']),
+      el('td',{},[String(d.document_count||0)]),
+    ]));
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(el('div',{class:'card'},[table]));
+  return wrap;
+}
+function searchInput(value, onInput, placeholder){
+  const input = el('input',{type:'search', placeholder, value});
+  input.addEventListener('input', ()=>onInput(input.value));
+  return input;
+}
+
+// ---------------- vehicles list ----------------
+function renderVehicles(){
+  const wrap = el('div',{});
+  wrap.appendChild(el('div',{class:'page-head'},[
+    el('div',{},[el('h2',{},['Vehicles']), el('div',{class:'sub'},[state.vehicles.length+' in the fleet'])]),
+    el('div',{class:'toolbar'},[
+      state.vehicleAssignedFilter ? el('span',{class:'filter-chip'},[
+        state.vehicleAssignedFilter==='assigned' ? 'Assigned only' : 'Unassigned only',
+        el('button',{onclick:()=>{state.vehicleAssignedFilter=null; render();}, title:'Clear filter'},['×']),
+      ]) : null,
+      searchInput(state.vehicleSearch, v=>{state.vehicleSearch=v; render();}, 'Search vehicles…'),
+      el('button',{class:'btn primary', onclick:()=>openVehicleDrawer('add')},['+ Add vehicle']),
+    ]),
+  ]));
+
+  const q = state.vehicleSearch.trim().toLowerCase();
+  const rows = state.vehicles.filter(v=>
+    (!q || v.reg_no.toLowerCase().includes(q) || (v.model||'').toLowerCase().includes(q) || (v.driver_name||'').toLowerCase().includes(q)) &&
+    (!state.vehicleAssignedFilter || (state.vehicleAssignedFilter==='assigned' ? !!v.assigned_driver_id : !v.assigned_driver_id))
+  );
+
+  const table = el('table',{},[
+    el('thead',{},[el('tr',{},[
+      el('th',{},['Reg. no.']), el('th',{},['Model']), el('th',{},['Status']), el('th',{},['Driver']), el('th',{},['Documents']),
+    ])]),
+  ]);
+  const tbody = el('tbody',{});
+  if(!rows.length){
+    tbody.appendChild(el('tr',{class:'empty-row'},[el('td',{colspan:5},[(q||state.vehicleAssignedFilter)?'No vehicles match this filter.':'No vehicles yet — add the first one.'])]));
+  }
+  rows.forEach(v=>{
+    tbody.appendChild(el('tr',{onclick:()=>openVehicleDrawer('view', v.id)},[
+      el('td',{},[el('b',{},[v.reg_no])]),
+      el('td',{},[v.model||'—']),
+      el('td',{},[statusPill(v.status)]),
+      el('td',{},[v.driver_name?el('span',{},[v.driver_name, ' ', statusPill(v.driver_status)]):el('span',{style:'color:var(--ink-soft)'},['Unassigned'])]),
+      el('td',{},[String(v.document_count||0)]),
+    ]));
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(el('div',{class:'card'},[table]));
+  return wrap;
+}
+
+// ---------------- driver drawer ----------------
+async function openDriverDrawer(mode, id){
+  state.drawer = {type:'driver', mode, id, tab:'profile'};
+  render();
+  if(id){
+    try{ await loadDriverDetail(id); render(); }
+    catch(err){ toast(err.message, true); state.drawer=null; render(); }
+  }
+}
+function closeDrawer(){ state.drawer=null; state.driverDetail=null; state.vehicleDetail=null; render(); }
+
+function renderDrawer(){
+  const overlay = el('div',{class:'overlay', onclick:(e)=>{ if(e.target===overlay) closeDrawer(); }});
+  const d = state.drawer;
+  const drawer = el('div',{class:'drawer'});
+  if(d.type==='driver'){
+    drawer.appendChild(renderDriverDrawerContent(d));
+  } else {
+    drawer.appendChild(renderVehicleDrawerContent(d));
+  }
+  overlay.appendChild(drawer);
+  return overlay;
+}
+
+function renderDriverDrawerContent(d){
+  const isAdd = d.mode==='add';
+  const detail = state.driverDetail;
+  const frag = el('div',{});
+  frag.appendChild(el('div',{class:'drawer-head'},[
+    el('div',{},[
+      el('h3',{},[isAdd?'Add driver':(detail?detail.name:'Loading…')]),
+      !isAdd && detail ? el('div',{style:'margin-top:6px;'},[statusPill(detail.status)]) : null,
+    ]),
+    el('button',{class:'close-x', onclick:closeDrawer},['✕']),
+  ]));
+  const body = el('div',{class:'drawer-body'});
+
+  if(isAdd){
+    body.appendChild(driverForm(null));
+  } else if(!detail){
+    body.appendChild(el('div',{style:'color:var(--ink-soft)'},['Loading…']));
+  } else {
+    const tabsRow = el('div',{style:'display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);margin-bottom:18px;'});
+    const tabs = el('div',{class:'tabs', style:'border-bottom:none;margin-bottom:0;'});
+    const tabLabels = {profile:'Profile', personal:'Personal & Bank', documents:'Documents', history:'History'};
+    ['profile','personal','documents','history'].forEach(t=>{
+      tabs.appendChild(el('button',{class:'tab-btn'+(d.tab===t?' active':''), onclick:()=>{d.tab=t; render();}},[tabLabels[t]]));
+    });
+    tabsRow.appendChild(tabs);
+    if(d.tab==='profile' || d.tab==='personal'){
+      tabsRow.appendChild(el('button',{class:'btn ghost', style:'padding:5px 12px;font-size:12px;flex:0 0 auto;', onclick:()=>{ d.editing=!d.editing; render(); }},[d.editing?'Done':'✎ Edit']));
+    }
+    body.appendChild(tabsRow);
+    if(d.tab==='profile'){
+      body.appendChild(driverActionsBar(detail));
+      body.appendChild(driverAppAccessCard(detail));
+      body.appendChild(d.editing ? driverForm(detail) : driverProfileView(detail));
+    } else if(d.tab==='personal'){
+      body.appendChild(d.editing ? driverPersonalForm(detail) : driverPersonalView(detail));
+    } else if(d.tab==='documents'){
+      body.appendChild(documentSection('driver', detail));
+    } else {
+      body.appendChild(historySection(detail.history));
+    }
+  }
+  frag.appendChild(body);
+  return frag;
+}
+
+function driverActionsBar(detail){
+  const bar = el('div',{style:'display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap;'});
+  if(detail.status==='active'){
+    bar.appendChild(el('button',{class:'btn warn', onclick:()=>openStatusModal(detail,'suspend')},['Suspend']));
+    bar.appendChild(el('button',{class:'btn danger', onclick:()=>openStatusModal(detail,'terminate')},['Terminate']));
+  } else if(detail.status==='suspended'){
+    bar.appendChild(el('button',{class:'btn good', onclick:()=>openStatusModal(detail,'reinstate')},['Reinstate']));
+    bar.appendChild(el('button',{class:'btn danger', onclick:()=>openStatusModal(detail,'terminate')},['Terminate']));
+  } else {
+    bar.appendChild(el('button',{class:'btn good', onclick:()=>openStatusModal(detail,'reinstate')},['Reinstate']));
+  }
+  bar.appendChild(el('button',{class:'btn ghost', style:'margin-left:auto;', onclick:()=>openDeleteModal('driver', detail)},['Delete driver']));
+  return bar;
+}
+
+function driverAppAccessCard(detail){
+  const card = el('div',{class:'card', style:'padding:14px 16px; margin-bottom:18px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;'});
+  card.appendChild(el('div',{},[
+    el('div',{style:'font-weight:700; font-size:13px;'},['Driver app access']),
+    el('div',{style:'margin-top:4px;'},[detail.has_pin ? el('span',{class:'pill good'},['PIN set']) : el('span',{class:'pill warn'},['No PIN set'])]),
+  ]));
+  card.appendChild(el('div',{style:'display:flex; gap:8px;'},[
+    el('button',{class:'btn ghost', onclick:()=>openSetPinModal(detail)},[detail.has_pin?'Reset PIN':'Set PIN']),
+    el('button',{class:'btn ghost', onclick:()=>openSendMessageModal(detail)},['Send message']),
+  ]));
+  return card;
+}
+
+function detailField(label, value, full){
+  return el('div',{class:'field'+(full?' full':'')},[el('label',{},[label]), el('div',{class:'view-value'},[(value!=null && value!=='')?String(value):'—'])]);
+}
+function detailSectionLabel(title){
+  return el('div',{style:'font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);font-weight:700;margin:22px 0 10px;'},[title]);
+}
+
+function driverProfileView(detail){
+  const wrap = el('div',{});
+  const grid = el('div',{class:'form-grid'});
+  grid.appendChild(detailField('Full name', detail.name));
+  grid.appendChild(detailField("Father's name", detail.father_name));
+  grid.appendChild(detailField('Phone', detail.phone));
+  grid.appendChild(detailField('Commission %', detail.commission_pct!=null?detail.commission_pct+'%':null));
+  grid.appendChild(detailField('Joined on', detail.joined_on?fmtDate(detail.joined_on):null));
+  grid.appendChild(detailField('Notes', detail.notes, true));
+  wrap.appendChild(grid);
+  return wrap;
+}
+
+function driverPersonalView(detail){
+  const wrap = el('div',{});
+  function sec(title){ wrap.appendChild(detailSectionLabel(title)); }
+  function row(items){
+    const g = el('div',{class:'form-grid'});
+    items.forEach(([l,v,full])=> g.appendChild(detailField(l,v,full)));
+    wrap.appendChild(g);
+  }
+
+  sec('Identity numbers');
+  row([['Driving licence no.', detail.license_no], ['PAN card no.', detail.pan_no], ['Aadhar card no.', detail.aadhar_no]]);
+
+  sec('Personal details');
+  row([['Blood group', detail.blood_group], ['Marital status', detail.marital_status], ['Experience', detail.experience, true]]);
+
+  sec('Current address');
+  row([
+    ['Address line 1', detail.current_address_line1, true],
+    ['Address line 2', detail.current_address_line2, true],
+    ['City', detail.current_address_city],
+    ['State', detail.current_address_state],
+    ['Pin code', detail.current_address_pincode],
+  ]);
+
+  sec('Permanent address');
+  if(detail.permanent_same_as_current){
+    wrap.appendChild(el('div',{style:'font-size:13px;color:var(--ink-soft);margin-bottom:6px;'},['Same as current address']));
+  } else {
+    row([
+      ['Address line 1', detail.permanent_address_line1, true],
+      ['Address line 2', detail.permanent_address_line2, true],
+      ['City', detail.permanent_address_city],
+      ['State', detail.permanent_address_state],
+      ['Pin code', detail.permanent_address_pincode],
+    ]);
+  }
+
+  sec('Emergency contact');
+  row([['Contact name', detail.emergency_contact_name], ['Contact phone', detail.emergency_contact_phone], ['Relation', detail.emergency_contact_relation]]);
+
+  sec('Bank account (for payouts)');
+  row([['Account no.', detail.bank_account_no], ['Bank name', detail.bank_name], ['Branch', detail.bank_branch], ['IFSC code', detail.bank_ifsc]]);
+
+  return wrap;
+}
+
+function driverForm(detail){
+  const vals = detail || {name:'', phone:'', commission_pct:20, joined_on:new Date().toISOString().slice(0,10), notes:''};
+  const f = {};
+  const form = el('form',{});
+  const grid = el('div',{class:'form-grid'});
+  function field(labelText, key, opts){
+    opts = opts||{};
+    const input = el(opts.textarea?'textarea':'input', Object.assign({type:opts.type||'text', value: vals[key]!=null?vals[key]:''}, opts.attrs||{}));
+    f[key]=input;
+    return el('div',{class:'field'+(opts.full?' full':'')},[el('label',{},[labelText]), input]);
+  }
+  grid.appendChild(field('Full name *','name'));
+  grid.appendChild(field("Father's name",'father_name'));
+  grid.appendChild(field('Phone','phone', {attrs:{placeholder:'10-digit mobile'}}));
+  grid.appendChild(field('Commission %','commission_pct',{type:'number', attrs:{step:'0.5', min:'0', max:'100'}}));
+  grid.appendChild(field('Joined on','joined_on',{type:'date'}));
+  grid.appendChild(field('Notes','notes',{full:true, textarea:true}));
+  form.appendChild(grid);
+  if(!detail){
+    form.appendChild(el('div',{class:'callout-hint', style:'font-size:12.5px;color:var(--ink-soft);margin-top:14px;'},['PAN, Aadhar, bank details, address, and emergency contact can be added from the Personal & Bank tab once the driver is created.']));
+  }
+  const err = el('div',{class:'error-text'},['']);
+  form.appendChild(err);
+  form.appendChild(el('div',{style:'margin-top:16px;'},[
+    el('button',{type:'submit', class:'btn primary'},[detail?'Save changes':'Add driver']),
+  ]));
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const payload = {
+      name:f.name.value, father_name:f.father_name.value, phone:f.phone.value,
+      commission_pct:f.commission_pct.value, joined_on:f.joined_on.value,
+      notes:f.notes.value,
+    };
+    try{
+      if(detail){
+        await api('/drivers/'+detail.id, {method:'PUT', body:payload});
+        toast('Driver details updated.');
+        await Promise.all([loadDrivers(), loadDriverDetail(detail.id)]);
+        if(state.drawer) state.drawer.editing = false;
+      } else {
+        const created = await api('/drivers', {method:'POST', body:payload});
+        toast('Driver added.');
+        await loadDrivers();
+        state.drawer = {type:'driver', mode:'view', id:created.id, tab:'profile'};
+        await loadDriverDetail(created.id);
+      }
+      render();
+    }catch(ex){ err.textContent = ex.message; }
+  });
+  return form;
+}
+
+function driverPersonalForm(detail){
+  const f = {};
+  const form = el('form',{});
+  function section(title){ return el('div',{style:'font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);font-weight:700;margin:22px 0 10px;'},[title]); }
+  function field(labelText, key, opts){
+    opts = opts||{};
+    const val = detail[key];
+    const input = opts.select
+      ? (()=>{
+          const sel = el('select',{});
+          opts.select.forEach(([v,l])=> sel.appendChild(el('option',{value:v, selected: val===v?'selected':null},[l])));
+          return sel;
+        })()
+      : el(opts.textarea?'textarea':'input', Object.assign({type:opts.type||'text', value: val!=null?val:''}, opts.attrs||{}));
+    f[key]=input;
+    return el('div',{class:'field'+(opts.full?' full':'')},[el('label',{},[labelText]), input]);
+  }
+
+  form.appendChild(section('Identity numbers'));
+  let grid = el('div',{class:'form-grid'});
+  grid.appendChild(field('Driving licence no.','license_no'));
+  grid.appendChild(field('PAN card no.','pan_no'));
+  grid.appendChild(field('Aadhar card no.','aadhar_no'));
+  form.appendChild(grid);
+
+  form.appendChild(section('Personal details'));
+  grid = el('div',{class:'form-grid'});
+  grid.appendChild(field('Blood group','blood_group',{select:[['','—'],['A+','A+'],['A-','A-'],['B+','B+'],['B-','B-'],['AB+','AB+'],['AB-','AB-'],['O+','O+'],['O-','O-']]}));
+  grid.appendChild(field('Marital status','marital_status',{select:[['','—'],['Single','Single'],['Married','Married'],['Other','Other']]}));
+  grid.appendChild(field('Experience','experience',{full:true, attrs:{placeholder:'e.g. 5 years, 2 with a commercial permit'}}));
+  form.appendChild(grid);
+
+  const stateOptions = [['','—'], ...INDIAN_STATES.map(s=>[s,s])];
+
+  form.appendChild(section('Current address'));
+  grid = el('div',{class:'form-grid'});
+  grid.appendChild(field('Address line 1','current_address_line1',{full:true}));
+  grid.appendChild(field('Address line 2','current_address_line2',{full:true}));
+  grid.appendChild(field('City','current_address_city'));
+  grid.appendChild(field('State','current_address_state',{select:stateOptions}));
+  grid.appendChild(field('Pin code','current_address_pincode',{attrs:{maxlength:6, inputmode:'numeric', pattern:'[0-9]{6}'}}));
+  form.appendChild(grid);
+
+  form.appendChild(section('Permanent address'));
+  const sameCheckWrap = el('label',{style:'display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin-bottom:14px;cursor:pointer;'});
+  const sameCheck = el('input',{type:'checkbox'});
+  sameCheck.checked = !!detail.permanent_same_as_current;
+  sameCheckWrap.appendChild(sameCheck);
+  sameCheckWrap.appendChild(document.createTextNode('Same as current address'));
+  form.appendChild(sameCheckWrap);
+
+  grid = el('div',{class:'form-grid'});
+  grid.appendChild(field('Address line 1','permanent_address_line1',{full:true}));
+  grid.appendChild(field('Address line 2','permanent_address_line2',{full:true}));
+  grid.appendChild(field('City','permanent_address_city'));
+  grid.appendChild(field('State','permanent_address_state',{select:stateOptions}));
+  grid.appendChild(field('Pin code','permanent_address_pincode',{attrs:{maxlength:6, inputmode:'numeric', pattern:'[0-9]{6}'}}));
+  form.appendChild(grid);
+
+  const permFields = ['permanent_address_line1','permanent_address_line2','permanent_address_city','permanent_address_state','permanent_address_pincode'];
+  const curFields = ['current_address_line1','current_address_line2','current_address_city','current_address_state','current_address_pincode'];
+  function syncPermanentFromCurrent(){
+    permFields.forEach((pf,i)=>{ f[pf].value = f[curFields[i]].value; });
+  }
+  function applySameAsCurrent(){
+    const same = sameCheck.checked;
+    permFields.forEach(pf=>{ f[pf].disabled = same; });
+    if(same) syncPermanentFromCurrent();
+  }
+  sameCheck.addEventListener('change', ()=>{
+    applySameAsCurrent();
+    if(!sameCheck.checked){
+      permFields.forEach(pf=>{ f[pf].value = ''; });
+    }
+  });
+  curFields.forEach(cf=> f[cf].addEventListener('input', ()=>{ if(sameCheck.checked) syncPermanentFromCurrent(); }));
+  applySameAsCurrent();
+
+  form.appendChild(section('Emergency contact'));
+  grid = el('div',{class:'form-grid'});
+  grid.appendChild(field('Contact name','emergency_contact_name'));
+  grid.appendChild(field('Contact phone','emergency_contact_phone'));
+  grid.appendChild(field('Relation','emergency_contact_relation',{attrs:{placeholder:'e.g. Father, Spouse'}}));
+  form.appendChild(grid);
+
+  form.appendChild(section('Bank account (for payouts)'));
+  grid = el('div',{class:'form-grid'});
+  grid.appendChild(field('Account no.','bank_account_no'));
+  grid.appendChild(field('Bank name','bank_name'));
+  grid.appendChild(field('Branch','bank_branch'));
+  grid.appendChild(field('IFSC code','bank_ifsc'));
+  form.appendChild(grid);
+
+  const err = el('div',{class:'error-text'},['']);
+  form.appendChild(err);
+  form.appendChild(el('div',{style:'margin-top:16px;'},[
+    el('button',{type:'submit', class:'btn primary'},['Save changes']),
+  ]));
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    if(sameCheck.checked) syncPermanentFromCurrent();
+    const payload = {name: detail.name, permanent_same_as_current: sameCheck.checked};
+    Object.keys(f).forEach(k=> payload[k]=f[k].value);
+    try{
+      await api('/drivers/'+detail.id, {method:'PUT', body:payload});
+      toast('Personal & bank details updated.');
+      await loadDriverDetail(detail.id);
+      if(state.drawer) state.drawer.editing = false;
+      render();
+    }catch(ex){ err.textContent = ex.message; }
+  });
+  return form;
+}
+
+// ---------------- vehicle drawer ----------------
+async function openVehicleDrawer(mode, id){
+  state.drawer = {type:'vehicle', mode, id, tab:'profile'};
+  render();
+  if(id){
+    try{ await loadVehicleDetail(id); render(); }
+    catch(err){ toast(err.message, true); state.drawer=null; render(); }
+  }
+}
+function renderVehicleDrawerContent(d){
+  const isAdd = d.mode==='add';
+  const detail = state.vehicleDetail;
+  const frag = el('div',{});
+  frag.appendChild(el('div',{class:'drawer-head'},[
+    el('div',{},[
+      el('h3',{},[isAdd?'Add vehicle':(detail?detail.reg_no:'Loading…')]),
+      !isAdd && detail ? el('div',{style:'margin-top:6px;'},[statusPill(detail.status)]) : null,
+    ]),
+    el('button',{class:'close-x', onclick:closeDrawer},['✕']),
+  ]));
+  const body = el('div',{class:'drawer-body'});
+  if(isAdd){
+    body.appendChild(vehicleForm(null));
+  } else if(!detail){
+    body.appendChild(el('div',{style:'color:var(--ink-soft)'},['Loading…']));
+  } else {
+    const tabsRow = el('div',{style:'display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);margin-bottom:18px;'});
+    const tabs = el('div',{class:'tabs', style:'border-bottom:none;margin-bottom:0;'});
+    ['profile','documents'].forEach(t=>{
+      tabs.appendChild(el('button',{class:'tab-btn'+(d.tab===t?' active':''), onclick:()=>{d.tab=t; render();}},[t[0].toUpperCase()+t.slice(1)]));
+    });
+    tabsRow.appendChild(tabs);
+    if(d.tab==='profile'){
+      tabsRow.appendChild(el('button',{class:'btn ghost', style:'padding:5px 12px;font-size:12px;flex:0 0 auto;', onclick:()=>{ d.editing=!d.editing; render(); }},[d.editing?'Done':'✎ Edit']));
+    }
+    body.appendChild(tabsRow);
+    if(d.tab==='profile'){
+      body.appendChild(el('div',{style:'display:flex; margin-bottom:18px;'},[
+        el('button',{class:'btn ghost', style:'margin-left:auto;', onclick:()=>openDeleteModal('vehicle', detail)},['Delete vehicle']),
+      ]));
+      body.appendChild(d.editing ? vehicleForm(detail) : vehicleProfileView(detail));
+    } else {
+      body.appendChild(documentSection('vehicle', detail));
+    }
+  }
+  frag.appendChild(body);
+  return frag;
+}
+function vehicleProfileView(detail){
+  const wrap = el('div',{});
+  const grid = el('div',{class:'form-grid'});
+  grid.appendChild(detailField('Registration no.', detail.reg_no));
+  grid.appendChild(detailField('Model', detail.model));
+  grid.appendChild(detailField('Vehicle type', detail.vehicle_type));
+  grid.appendChild(detailField('Assigned driver', detail.driver_name ? detail.driver_name+(detail.driver_status && detail.driver_status!=='active' ? ' ('+detail.driver_status+')' : '') : null));
+  grid.appendChild(detailField('Cost basis', detail.is_jiju ? 'Jiju settlement vehicle (flat/day, no EMI)' : (detail.emi_amount ? 'EMI '+inrp(detail.emi_amount)+'/'+(detail.emi_period||'monthly') : 'No EMI set')));
+  grid.appendChild(detailField('Notes', detail.notes, true));
+  wrap.appendChild(grid);
+  return wrap;
+}
+function vehicleForm(detail){
+  const vals = detail || {reg_no:'', model:'', vehicle_type:'', assigned_driver_id:'', notes:'', emi_amount:'', emi_period:'monthly', is_jiju:0};
+  const f = {};
+  const form = el('form',{});
+  const grid = el('div',{class:'form-grid'});
+  function field(labelText, key, node){ f[key]=node; return el('div',{class:'field'},[el('label',{},[labelText]), node]); }
+  grid.appendChild(field('Registration no. *','reg_no', el('input',{type:'text', value:vals.reg_no||'', placeholder:'e.g. MH-40-AB-1026'})));
+  grid.appendChild(field('Model','model', el('input',{type:'text', value:vals.model||'', placeholder:'e.g. Maruti Dzire'})));
+  grid.appendChild(field('Vehicle type','vehicle_type', el('input',{type:'text', value:vals.vehicle_type||'', placeholder:'e.g. Sedan'})));
+  if(detail){
+    const statusSelect = el('select',{});
+    [['active','Active'],['maintenance','In Maintenance'],['retired','Retired']].forEach(([v,l])=>
+      statusSelect.appendChild(el('option',{value:v, selected: vals.status===v?'selected':null},[l])));
+    grid.appendChild(field('Status','status', statusSelect));
+  }
+  const driverSelect = el('select',{});
+  driverSelect.appendChild(el('option',{value:''},['Unassigned']));
+  state.drivers.filter(dr=>dr.status==='active' || dr.id===vals.assigned_driver_id).forEach(dr=>{
+    driverSelect.appendChild(el('option',{value:dr.id, selected: String(vals.assigned_driver_id)===String(dr.id)?'selected':null},[dr.name+(dr.status!=='active'?' ('+dr.status+')':'')]));
+  });
+  f.assigned_driver_id = driverSelect;
+  grid.appendChild(field('Assigned driver', 'assigned_driver_id', driverSelect));
+
+  const jijuCheck = el('input',{type:'checkbox'});
+  jijuCheck.checked = !!vals.is_jiju;
+  f.is_jiju = jijuCheck;
+  const emiAmountInput = el('input',{type:'number', step:'0.01', min:'0', value:vals.emi_amount==null?'':vals.emi_amount, placeholder:'e.g. 17500'});
+  f.emi_amount = emiAmountInput;
+  const emiField = field('EMI amount (₹)', 'emi_amount', emiAmountInput);
+  const emiPeriodSelect = el('select',{});
+  [['monthly','Monthly'],['daily','Daily']].forEach(([v,l])=>
+    emiPeriodSelect.appendChild(el('option',{value:v, selected:(vals.emi_period||'monthly')===v?'selected':null},[l])));
+  f.emi_period = emiPeriodSelect;
+  const emiPeriodField = field('EMI period', 'emi_period', emiPeriodSelect);
+  function updateEmiVisibility(){
+    const hide = jijuCheck.checked;
+    emiField.style.display = hide ? 'none' : '';
+    emiPeriodField.style.display = hide ? 'none' : '';
+  }
+  jijuCheck.addEventListener('change', updateEmiVisibility);
+  grid.appendChild(field('Jiju settlement vehicle (flat ₹/day, no EMI)', 'is_jiju', jijuCheck));
+  grid.appendChild(emiField);
+  grid.appendChild(emiPeriodField);
+  updateEmiVisibility();
+  form.appendChild(grid);
+  const notesArea = el('textarea',{},[vals.notes||'']);
+  f.notes = notesArea;
+  form.appendChild(el('div',{class:'field', style:'margin-top:12px;'},[el('label',{},['Notes']), notesArea]));
+  const err = el('div',{class:'error-text'},['']);
+  form.appendChild(err);
+  form.appendChild(el('div',{style:'margin-top:16px;'},[
+    el('button',{type:'submit', class:'btn primary'},[detail?'Save changes':'Add vehicle']),
+  ]));
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const payload = {
+      reg_no:f.reg_no.value, model:f.model.value, vehicle_type:f.vehicle_type.value,
+      assigned_driver_id: f.assigned_driver_id.value || null, notes:f.notes.value,
+      status: f.status ? f.status.value : undefined,
+      is_jiju: f.is_jiju.checked, emi_period: f.emi_period.value,
+      emi_amount: f.is_jiju.checked ? null : (f.emi_amount.value === '' ? null : f.emi_amount.value),
+    };
+    try{
+      if(detail){
+        await api('/vehicles/'+detail.id, {method:'PUT', body:payload});
+        toast('Vehicle details updated.');
+        await Promise.all([loadVehicles(), loadVehicleDetail(detail.id)]);
+        if(state.drawer) state.drawer.editing = false;
+      } else {
+        const created = await api('/vehicles', {method:'POST', body:payload});
+        toast('Vehicle added.');
+        await loadVehicles();
+        state.drawer = {type:'vehicle', mode:'view', id:created.id, tab:'profile'};
+        await loadVehicleDetail(created.id);
+      }
+      render();
+    }catch(ex){ err.textContent = ex.message; }
+  });
+  return form;
+}
+
+// ---------------- documents ----------------
+function documentSection(kind, detail){
+  const wrap = el('div',{});
+  const labels = kind==='driver'?DRIVER_DOC_LABELS:VEHICLE_DOC_LABELS;
+  const docs = detail.documents||[];
+
+  const list = el('div',{class:'card', style:'margin-bottom:18px;'});
+  if(!docs.length){
+    list.appendChild(el('div',{style:'padding:22px;text-align:center;color:var(--ink-soft);font-size:13px;'},['No documents uploaded yet.']));
+  } else {
+    const inner = el('div',{style:'padding:4px 16px;'});
+    docs.forEach(doc=>{
+      inner.appendChild(el('div',{class:'doc-row'},[
+        el('div',{class:'icon'},['📄']),
+        el('div',{class:'meta'},[
+          el('b',{},[labels[doc.doc_type]||doc.doc_type, doc.label?(' — '+doc.label):'']),
+          el('span',{},[doc.file_name+' · uploaded '+fmtDate(doc.uploaded_at)+(doc.expires_on?(' · expires '+fmtDate(doc.expires_on)):'')]),
+        ]),
+        docExpiryPill(doc.expires_on),
+        el('div',{class:'row-actions'},[
+          el('a',{class:'icon-btn', title:'Download', href:'/api/'+(kind==='driver'?'driver-documents':'vehicle-documents')+'/'+doc.id+'/file', download:doc.file_name},['⬇ Download']),
+          el('button',{class:'icon-btn danger', onclick:()=>deleteDocument(kind, detail, doc)},['Delete']),
+        ]),
+      ]));
+    });
+    list.appendChild(inner);
+  }
+  wrap.appendChild(list);
+
+  const box = el('div',{class:'upload-box'});
+  box.appendChild(el('div',{style:'font-weight:700;font-size:13px;margin-bottom:10px;'},['Upload a document']));
+  const typeSelect = el('select',{});
+  Object.entries(labels).forEach(([val,label])=> typeSelect.appendChild(el('option',{value:val},[label])));
+  const fileInput = el('input',{type:'file'});
+  const expiresInput = el('input',{type:'date'});
+  const grid = el('div',{class:'form-grid'},[
+    el('div',{class:'field'},[el('label',{},['Document type']), typeSelect]),
+    el('div',{class:'field'},[el('label',{},['Expires on']), expiresInput]),
+    el('div',{class:'field full'},[el('label',{},['File']), fileInput]),
+  ]);
+  box.appendChild(grid);
+  const err = el('div',{class:'error-text'},['']);
+  const uploadBtn = el('button',{class:'btn primary', type:'button'},['Upload']);
+  uploadBtn.addEventListener('click', async ()=>{
+    if(!fileInput.files[0]){ err.textContent='Choose a file first.'; return; }
+    const fd = new FormData();
+    fd.append('doc_type', typeSelect.value);
+    if(expiresInput.value) fd.append('expires_on', expiresInput.value);
+    fd.append('file', fileInput.files[0]);
+    uploadBtn.disabled = true;
+    try{
+      await api('/'+(kind==='driver'?'drivers':'vehicles')+'/'+detail.id+'/documents', {method:'POST', body:fd});
+      toast('Document uploaded.');
+      if(kind==='driver'){ await loadDriverDetail(detail.id); await loadDrivers(); }
+      else { await loadVehicleDetail(detail.id); await loadVehicles(); }
+      render();
+    }catch(ex){ err.textContent = ex.message; }
+    finally{ uploadBtn.disabled = false; }
+  });
+  box.appendChild(err);
+  box.appendChild(el('div',{style:'margin-top:10px;'},[uploadBtn]));
+  wrap.appendChild(box);
+  return wrap;
+}
+async function deleteDocument(kind, detail, doc){
+  if(!confirm('Delete this document? This cannot be undone.')) return;
+  try{
+    await api('/'+(kind==='driver'?'driver-documents':'vehicle-documents')+'/'+doc.id, {method:'DELETE'});
+    toast('Document deleted.');
+    if(kind==='driver'){ await loadDriverDetail(detail.id); await loadDrivers(); }
+    else { await loadVehicleDetail(detail.id); await loadVehicles(); }
+    render();
+  }catch(ex){ toast(ex.message, true); }
+}
+
+function historySection(history){
+  const wrap = el('div',{class:'card'});
+  if(!history.length){
+    wrap.appendChild(el('div',{style:'padding:22px;text-align:center;color:var(--ink-soft);font-size:13px;'},['No status changes recorded yet.']));
+    return wrap;
+  }
+  const inner = el('div',{style:'padding:4px 16px;'});
+  history.forEach(h=>{
+    inner.appendChild(el('div',{class:'hist-row'},[
+      el('span',{class:'when'},[fmtDateTime(h.created_at)]),
+      el('div',{},[
+        el('div',{},[el('b',{},[h.action[0].toUpperCase()+h.action.slice(1)]), ' — ', h.from_status||'—', ' → ', h.to_status]),
+        el('div',{style:'color:var(--ink-soft);margin-top:2px;'},[h.reason]),
+      ]),
+    ]));
+  });
+  wrap.appendChild(inner);
+  return wrap;
+}
+
+// ---------------- modals ----------------
+function openStatusModal(detail, action){
+  state.modal = {type:'status', detail, action};
+  render();
+}
+function openDeleteModal(kind, detail){
+  state.modal = {type:'delete', kind, detail};
+  render();
+}
+function openSetPinModal(detail){
+  state.modal = {type:'setPin', detail};
+  render();
+}
+function openSendMessageModal(detail){
+  state.modal = {type:'sendMessage', detail};
+  render();
+}
+function closeModal(){ state.modal=null; render(); }
+
+function renderModal(){
+  const overlay = el('div',{class:'overlay center', onclick:(e)=>{ if(e.target===overlay) closeModal(); }});
+  const m = state.modal;
+  const box = el('div',{class:'modal'});
+  if(m.type==='status'){
+    const labels = {suspend:'Suspend driver', reinstate:'Reinstate driver', terminate:'Terminate driver'};
+    box.appendChild(el('h3',{},[labels[m.action]]));
+    box.appendChild(el('div',{class:'desc'},['This will be recorded in '+m.detail.name+"'s status history. A reason is required."]));
+    const reasonInput = el('textarea',{placeholder:'Reason…', style:'width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:var(--cream);color:var(--ink);min-height:80px;'});
+    box.appendChild(reasonInput);
+    const err = el('div',{class:'error-text'},['']);
+    box.appendChild(err);
+    const actionBtnClass = m.action==='terminate'?'danger':m.action==='reinstate'?'good':'warn';
+    const actions = el('div',{class:'actions'},[
+      el('button',{class:'btn ghost', onclick:closeModal},['Cancel']),
+      el('button',{class:'btn '+actionBtnClass, onclick: async ()=>{
+        if(!reasonInput.value.trim()){ err.textContent='Reason is required.'; return; }
+        try{
+          await api('/drivers/'+m.detail.id+'/status', {method:'POST', body:{action:m.action, reason:reasonInput.value.trim()}});
+          const pastTense = {suspend:'suspended', reinstate:'reinstated', terminate:'terminated'};
+          toast('Driver '+pastTense[m.action]+'.');
+          await Promise.all([loadDrivers(), loadDriverDetail(m.detail.id)]);
+          state.modal=null;
+          render();
+        }catch(ex){ err.textContent = ex.message; }
+      }},[labels[m.action]]),
+    ]);
+    box.appendChild(actions);
+  } else if(m.type==='delete'){
+    const nameLabel = m.kind==='driver'?m.detail.name:m.detail.reg_no;
+    box.appendChild(el('h3',{},['Delete '+(m.kind==='driver'?'driver':'vehicle')+'?']));
+    box.appendChild(el('div',{class:'desc'},['This permanently removes '+nameLabel+' and all of their documents. This is for correcting mistakes — for an active driver leaving the fleet, use Terminate instead so the record is kept.']));
+    box.appendChild(el('div',{class:'actions'},[
+      el('button',{class:'btn ghost', onclick:closeModal},['Cancel']),
+      el('button',{class:'btn danger', onclick: async ()=>{
+        try{
+          if(m.kind==='driver') await api('/drivers/'+m.detail.id, {method:'DELETE'});
+          else await api('/vehicles/'+m.detail.id, {method:'DELETE'});
+          toast((m.kind==='driver'?'Driver':'Vehicle')+' deleted.');
+          await refreshAll();
+          state.modal=null; state.drawer=null;
+          render();
+        }catch(ex){ toast(ex.message, true); closeModal(); }
+      }},['Delete']),
+    ]));
+  } else if(m.type==='setPin'){
+    box.appendChild(el('h3',{},[m.detail.has_pin?'Reset PIN':'Set PIN']));
+    box.appendChild(el('div',{class:'desc'},[m.detail.name+' will use their phone number and this PIN to log into the driver app at /driver.']));
+    const pinInput = el('input',{type:'text', inputmode:'numeric', maxlength:6, placeholder:'4-6 digit PIN', style:'width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:var(--cream);color:var(--ink);'});
+    box.appendChild(pinInput);
+    const err = el('div',{class:'error-text'},['']);
+    box.appendChild(err);
+    box.appendChild(el('div',{class:'actions'},[
+      el('button',{class:'btn ghost', onclick:closeModal},['Cancel']),
+      el('button',{class:'btn primary', onclick: async ()=>{
+        try{
+          await api('/drivers/'+m.detail.id+'/pin', {method:'PUT', body:{pin:pinInput.value.trim()}});
+          toast('PIN saved.');
+          await loadDriverDetail(m.detail.id);
+          state.modal=null;
+          render();
+        }catch(ex){ err.textContent = ex.message; }
+      }},['Save PIN']),
+    ]));
+  } else if(m.type==='sendMessage'){
+    box.appendChild(el('h3',{},['Send message to '+m.detail.name]));
+    box.appendChild(el('div',{class:'desc'},['Shows as a banner at the top of their app until they acknowledge it.']));
+    const msgInput = el('textarea',{placeholder:'e.g. Please service the vehicle this weekend.', style:'width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:var(--cream);color:var(--ink);min-height:80px;'});
+    box.appendChild(msgInput);
+    const err = el('div',{class:'error-text'},['']);
+    box.appendChild(err);
+    box.appendChild(el('div',{class:'actions'},[
+      el('button',{class:'btn ghost', onclick:closeModal},['Cancel']),
+      el('button',{class:'btn primary', onclick: async ()=>{
+        if(!msgInput.value.trim()){ err.textContent='Message cannot be empty.'; return; }
+        try{
+          await api('/drivers/'+m.detail.id+'/announcements', {method:'POST', body:{message:msgInput.value.trim()}});
+          toast('Message sent.');
+          state.modal=null;
+          render();
+        }catch(ex){ err.textContent = ex.message; }
+      }},['Send']),
+    ]));
+  }
+  overlay.appendChild(box);
+  return overlay;
+}
+
+document.addEventListener('keydown', (e)=>{
+  if(e.key !== 'Escape') return;
+  if(state.modal){ closeModal(); }
+  else if(state.drawer){ closeDrawer(); }
+  else if(state.railOpen){ state.railOpen=false; render(); }
+});
+
+setInterval(async ()=>{
+  if(!state.loggedIn || state.view!=='live-map') return;
+  try{ state.liveLocations = await api('/locations/live'); if(state.view==='live-map') render(); }catch(e){}
+}, 15000);
+
+// ---------------- boot ----------------
+async function boot(){
+  try{
+    const me = await api('/me');
+    state.adminUsername = me.username;
+    state.adminRole = me.role;
+    await refreshAll();
+    state.loggedIn = true;
+  }catch(e){
+    state.loggedIn = false;
+  }
+  state.loading = false;
+  render();
+}
+boot();
+</script>
+</body>
+</html>
